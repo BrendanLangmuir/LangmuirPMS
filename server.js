@@ -385,7 +385,27 @@ wss.on('connection', (ws, req) => {
       const req = allRequests.find(r => r.id === msg.reqId);
       if (req) {
         req.fulfilled = true;
-        // Also remove from Apollo station if matched
+        // Subtract quantity from warehouse sheet
+        if (LOCATIONS_URL && (req.partNum || req.partName)) {
+          fetch(LOCATIONS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action:   'subtract',
+              partNum:  req.partNum  || '',
+              partName: req.partName || '',
+              qty:      req.qty      || 1,
+            }),
+            redirect: 'follow',
+          }).then(r => r.json())
+            .then(d => {
+              console.log('Qty subtracted:', d);
+              // Refresh locations cache so next request shows updated qty
+              fetchLocations();
+            })
+            .catch(e => console.error('Subtract failed:', e.message));
+        }
+        // Remove from Apollo station if matched
         state.stations.forEach(st => {
           if (st.requests) st.requests = st.requests.filter(r => r.id !== msg.reqId);
         });
