@@ -226,9 +226,9 @@ app.get('/api/requests', (req, res) => {
   res.json({ requests: allRequests.filter(r => !r.fulfilled) });
 });
 app.get('/api/inventory', async (req, res) => {
-  if (!SHEETS_URL) return res.json({ success: false, error: 'SHEETS_URL not set' });
+  if (!LOCATIONS_URL) return res.json({ success: false, error: 'LOCATIONS_URL not set' });
   try {
-    const r = await fetch(SHEETS_URL, { method: 'GET', redirect: 'follow' });
+    const r = await fetch(LOCATIONS_URL, { redirect: 'follow' });
     const d = await r.json();
     res.json(d);
   } catch(e) { res.json({ success: false, error: e.message }); }
