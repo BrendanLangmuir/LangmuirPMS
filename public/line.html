@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+<title>Inventory Request</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #1a1a1a; color: #fff; font-family: system-ui, sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 32px 24px 40px; }
+
+  .line-name { font-size: 26px; font-weight: 800; margin-bottom: 4px; letter-spacing: 0.04em; }
+  .line-sub  { font-size: 13px; color: #555; margin-bottom: 32px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #555; margin-bottom: 10px; text-align: left; width: 100%; max-width: 400px; }
+
+  .card { background: #141414; border: 1.5px solid #222; border-radius: 14px; padding: 20px; width: 100%; max-width: 400px; margin-bottom: 20px; }
+
+  .inv-loading { font-size: 13px; color: #555; padding: 8px 0; }
+  .inv-form    { display: flex; gap: 8px; margin-bottom: 10px; }
+  .inv-select  { flex: 1; min-width: 0; background: #1e1030; border: 1.5px solid #554477; border-radius: 10px; color: #C89EF0; font-size: 14px; padding: 10px 14px; outline: none; cursor: pointer; }
+  .inv-select:focus { border-color: #9B6BCC; }
+  .inv-select option { background: #1e1030; }
+
+  .qty-row     { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .qty-label   { font-size: 13px; color: #888; }
+  .qty-btn     { width: 36px; height: 36px; border-radius: 8px; border: 1.5px solid #333; background: #222; color: #fff; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .qty-btn:hover { background: #333; }
+  .qty-val     { font-size: 20px; font-weight: 800; min-width: 32px; text-align: center; }
+
+  .send-btn    { width: 100%; padding: 14px; border-radius: 12px; border: none; background: #9B6BCC; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }
+  .send-btn:hover { background: #7A4BAA; }
+  .send-btn:active { transform: scale(0.98); }
+
+  .divider { display: flex; align-items: center; gap: 10px; margin: 4px 0 16px; width: 100%; }
+  .divider hr { flex: 1; border: none; border-top: 1px solid #2a2a2a; }
+  .divider span { font-size: 11px; color: #444; }
+
+  .text-input  { width: 100%; background: #222; border: 1.5px solid #333; border-radius: 10px; color: #fff; font-size: 14px; padding: 10px 14px; outline: none; margin-bottom: 12px; }
+  .text-input:focus { border-color: #9B6BCC; }
+  .text-input::placeholder { color: #555; }
+
+  .req-list    { width: 100%; max-width: 400px; }
+  .req-item    { background: #1e1030; border: 1px solid #9B6BCC44; border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px; }
+  .req-text    { flex: 1; font-size: 13px; color: #C89EF0; word-break: break-word; }
+  .req-meta    { font-size: 10px; color: #666; margin-top: 2px; }
+  .req-cancel  { background: none; border: none; color: #9B6BCC; cursor: pointer; font-size: 16px; padding: 0; flex-shrink: 0; }
+  .req-cancel:hover { color: #E24B4A; }
+
+  .sent-flash { background: #0d2a0d; border: 1.5px solid #63992266; border-radius: 12px; padding: 14px; text-align: center; color: #97C459; font-size: 15px; font-weight: 700; display: none; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<div class="line-name" id="line-name">Loading...</div>
+<div class="line-sub">Inventory Request</div>
+
+<div class="section-label">Select from inventory</div>
+<div class="card">
+  <div id="inv-loading" class="inv-loading">Loading inventory...</div>
+  <div id="inv-form" style="display:none">
+    <div class="inv-form">
+      <select class="inv-select" id="inv-select">
+        <option value="">— Select a part —</option>
+      </select>
+    </div>
+    <div class="qty-row">
+      <span class="qty-label">Qty:</span>
+      <button class="qty-btn" onclick="changeQty(-1)">−</button>
+      <span class="qty-val" id="qty-val">1</span>
+      <button class="qty-btn" onclick="changeQty(1)">+</button>
+    </div>
+    <div class="sent-flash" id="sent-flash">✓ Request sent!</div>
+    <button class="send-btn" onclick="sendDropdown()">📦 Send Request</button>
+  </div>
+
+  <div class="divider"><hr/><span>or</span><hr/></div>
+
+  <input class="text-input" id="text-input" type="text" maxlength="120" placeholder="Type a custom request..." onkeydown="if(event.key==='Enter')sendText()"/>
+  <button class="send-btn" style="background:#555" onclick="sendText()">Send Custom Request</button>
+</div>
+
+<div class="section-label">Active requests</div>
+<div class="req-list" id="req-list"></div>
+
+<script>
+const params  = new URLSearchParams(location.search);
+const lineName = decodeURIComponent(params.get('line') || 'Unknown');
+document.getElementById('line-name').textContent = lineName;
+document.title = lineName + ' — Inventory';
+
+const ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'?line='+encodeURIComponent(lineName));
+let myRequests = [], qty = 1, nextId = 1;
+
+ws.onmessage = e => {
+  const msg = JSON.parse(e.data);
+  if (msg.type === 'requests') {
+    myRequests = msg.requests.filter(r => r.line === lineName);
+    renderList();
+  }
+};
+
+// Polling fallback
+setInterval(async () => {
+  try {
+    const d = await (await fetch('/api/requests')).json();
+    myRequests = d.requests.filter(r => r.line === lineName);
+    renderList();
+  } catch {}
+}, 3000);
+
+// Load inventory
+async function loadInventory() {
+  try {
+    const r = await fetch('/api/inventory');
+    const d = await r.json();
+    if (d.success && d.inventory) {
+      const items = d.inventory[lineName] || [];
+      const sel   = document.getElementById('inv-select');
+      if (items.length) {
+        sel.innerHTML = '<option value="">— Select a part —</option>' +
+          items.map(i => `<option value="${esc(i.partNum+'|'+i.partName)}">${esc(i.partNum)} — ${esc(i.partName)}</option>`).join('');
+        document.getElementById('inv-loading').style.display = 'none';
+        document.getElementById('inv-form').style.display    = '';
+      } else {
+        document.getElementById('inv-loading').textContent = 'No parts listed for this line';
+        document.getElementById('inv-form').style.display  = '';
+      }
+    }
+  } catch(e) {
+    document.getElementById('inv-loading').textContent = 'Could not load inventory';
+    document.getElementById('inv-form').style.display  = '';
+  }
+}
+loadInventory();
+
+function changeQty(d) {
+  qty = Math.max(1, qty + d);
+  document.getElementById('qty-val').textContent = qty;
+}
+
+function sendDropdown() {
+  const sel = document.getElementById('inv-select');
+  if (!sel.value) return;
+  const [partNum, ...rest] = sel.value.split('|');
+  const partName = rest.join('|');
+  ws.send(JSON.stringify({ type: 'request', line: lineName, partNum, partName, text: partNum + ' — ' + partName, qty }));
+  sel.value = ''; qty = 1; document.getElementById('qty-val').textContent = '1';
+  flashSent();
+}
+
+function sendText() {
+  const input = document.getElementById('text-input');
+  const text  = input.value.trim();
+  if (!text) return;
+  ws.send(JSON.stringify({ type: 'request', line: lineName, text, qty: 1 }));
+  input.value = '';
+  flashSent();
+}
+
+function flashSent() {
+  const el = document.getElementById('sent-flash');
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 2000);
+}
+
+function cancelReq(id) {
+  ws.send(JSON.stringify({ type: 'fulfill', reqId: id }));
+}
+
+function renderList() {
+  const el = document.getElementById('req-list');
+  if (!myRequests.length) { el.innerHTML = ''; return; }
+  el.innerHTML = myRequests.map(r => `
+    <div class="req-item">
+      <div style="flex:1">
+        <div class="req-text">${esc(r.text || (r.partNum + ' — ' + r.partName))}</div>
+        <div class="req-meta">Qty: ${r.qty || 1} · ${r.time}</div>
+      </div>
+      <button class="req-cancel" onclick="cancelReq(${r.id})">✕</button>
+    </div>`).join('');
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
