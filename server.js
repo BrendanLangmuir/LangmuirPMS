@@ -1,6 +1,5 @@
 const express = require('express');
 const http = require('http');
-const https = require('https');
 const { WebSocketServer } = require('ws');
 
 const app = express();
@@ -10,10 +9,12 @@ const wss = new WebSocketServer({ server });
 app.use(express.json());
 app.use(express.static('public'));
 
-const SHEETS_URL   = process.env.SHEETS_URL || '';
-const PORT         = process.env.PORT || 8080;
-const TAKT_SECONDS = 3 * 60 * 60;
+const SHEETS_URL      = process.env.SHEETS_URL || '';
+const LOCATIONS_URL   = process.env.LOCATIONS_URL || '';
+const PORT            = process.env.PORT || 8080;
+const TAKT_SECONDS    = 3 * 60 * 60;
 
+// ── Apollo stations ──────────────────────────────────────────
 const STATIONS = [
   { id: 1,  name: 'Framing',               type: 'main' },
   { id: 2,  name: 'Machining',             type: 'main' },
@@ -35,6 +36,8 @@ const HOLD_REASONS = [
   'Waiting for previous station',
 ];
 
+const OTHER_LINES = ['XF/PRO', 'TITAN', 'VULCAN', 'XR', 'MR1'];
+
 const SCHEDULED_BREAKS = [
   { id: 'break1', label: 'Morning Break',   start: [10, 30], end: [10, 45] },
   { id: 'lunch',  label: 'Lunch',           start: [13,  0], end: [13, 30] },
@@ -44,7 +47,6 @@ const SCHEDULED_BREAKS = [
 function getCSTDate() {
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
 }
-
 function getScheduledBreak() {
   const cst  = getCSTDate();
   const mins = cst.getHours() * 60 + cst.getMinutes();
@@ -55,77 +57,50 @@ function getScheduledBreak() {
   }
   return null;
 }
-
 function todayStr() { return new Date().toDateString(); }
 
+// ── Global request store (persists across takt restarts) ─────
+// { id, line, station, partNum, partName, text, qty, location, time, fulfilled }
+let allRequests  = [];
+let nextReqId    = 1;
+
+// ── Apollo state ─────────────────────────────────────────────
 function resetStations() {
+  const now = Date.now();
   return STATIONS.map(s => ({
     ...s,
-    // Takt progress
-    done: false,
-    completedAt: null,
-    // Station status
-    stationStatus: 'hold',      // 'active' | 'hold' — worker starts via app
-    holdReason: null,
-    stationStartTime: null,     // ms when current active period started
-    activeMs: 0,                // accumulated active ms this cycle
-    // Andon
-    andon: null,
-    andonTime: null,
-    andonPauseStart: null,
-    totalAndonPause: 0,
-    // Inventory
-    requests: [],
+    done: false, completedAt: null,
+    stationStatus: 'active', holdReason: null,
+    stationStartTime: now, activeMs: 0,
+    andon: null, andonTime: null,
+    andonPauseStart: null, totalAndonPause: 0,
   }));
 }
 
 let state = {
-  running: false,
-  paused: false,
-  pauseLabel: null,
-  pauseStart: null,
-  totalPausedMs: 0,
-  startTime: null,
-  cycleCount: 0,
-  cycleDate: todayStr(),
+  running: false, paused: false,
+  pauseLabel: null, pauseStart: null, totalPausedMs: 0,
+  startTime: null, cycleCount: 0, cycleDate: todayStr(),
   stations: resetStations(),
 };
 
-let autoEndTimer    = null; // kept for scheduled break re-arm only
-let breakCheckTimer = null;
-let nextReqId       = 1;
+let autoEndTimer = null, breakCheckTimer = null;
 
-function broadcast(msg) {
-  const data = JSON.stringify(msg);
-  wss.clients.forEach(c => { if (c.readyState === 1) c.send(data); });
-}
-function broadcastState() {
-  broadcast({ type: 'state', state, taktSeconds: TAKT_SECONDS });
-}
-
-// ── Station active time helpers ──────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────
 function stationActiveMs(st) {
   let ms = st.activeMs;
-  if (st.stationStatus === 'active' && st.stationStartTime) {
-    ms += Date.now() - st.stationStartTime;
-  }
+  if (st.stationStatus === 'active' && st.stationStartTime) ms += Date.now() - st.stationStartTime;
   return ms;
 }
-
 function pauseStationTimer(st) {
   if (st.stationStatus === 'active' && st.stationStartTime) {
     st.activeMs += Date.now() - st.stationStartTime;
     st.stationStartTime = null;
   }
 }
-
 function resumeStationTimer(st) {
-  if (st.stationStatus === 'active' && !st.stationStartTime) {
-    st.stationStartTime = Date.now();
-  }
+  if (st.stationStatus === 'active' && !st.stationStartTime) st.stationStartTime = Date.now();
 }
-
-// ── Effective takt elapsed (excluding pauses) ────────────────
 function effectiveElapsedMs() {
   if (!state.running || !state.startTime) return 0;
   let e = Date.now() - state.startTime - state.totalPausedMs;
@@ -133,37 +108,45 @@ function effectiveElapsedMs() {
   return Math.max(0, e);
 }
 
-// ── Pause / Resume takt ──────────────────────────────────────
+function broadcastApollo(msg) {
+  const data = JSON.stringify(msg);
+  apolloClients.forEach(c => { if (c.readyState === 1) c.send(data); });
+}
+function broadcastPicker(msg) {
+  const data = JSON.stringify(msg);
+  pickerClients.forEach(c => { if (c.readyState === 1) c.send(data); });
+}
+function broadcastAll(msg) { broadcastApollo(msg); broadcastPicker(msg); }
+
+function broadcastState() {
+  broadcastApollo({ type: 'state', state, taktSeconds: TAKT_SECONDS, holdReasons: HOLD_REASONS });
+}
+function broadcastRequests() {
+  const active = allRequests.filter(r => !r.fulfilled);
+  broadcastAll({ type: 'requests', requests: active });
+}
+
+// ── Pause / Resume ───────────────────────────────────────────
 function pauseCycle(label) {
   if (!state.running || state.paused) return;
-  state.paused     = true;
-  state.pauseLabel = label;
-  state.pauseStart = Date.now();
-  // Pause all active station timers
+  state.paused = true; state.pauseLabel = label; state.pauseStart = Date.now();
   state.stations.forEach(st => pauseStationTimer(st));
   if (autoEndTimer) { clearTimeout(autoEndTimer); autoEndTimer = null; }
   broadcastState();
 }
-
 function resumeCycle() {
   if (!state.running || !state.paused) return;
   state.totalPausedMs += Date.now() - state.pauseStart;
-  state.paused      = false;
-  state.pauseLabel  = null;
-  state.pauseStart  = null;
-  // Resume active station timers
+  state.paused = false; state.pauseLabel = null; state.pauseStart = null;
   state.stations.forEach(st => resumeStationTimer(st));
   broadcastState();
 }
-
-// ── Scheduled break checker ──────────────────────────────────
 function checkBreaks() {
   if (!state.running) return;
   const brk = getScheduledBreak();
   if (brk && !state.paused) pauseCycle(brk.label);
   else if (!brk && state.paused && state.pauseLabel !== 'Paused') resumeCycle();
 }
-
 function startBreakChecker() {
   if (breakCheckTimer) clearInterval(breakCheckTimer);
   breakCheckTimer = setInterval(checkBreaks, 15000);
@@ -173,17 +156,13 @@ function stopBreakChecker() {
   if (breakCheckTimer) { clearInterval(breakCheckTimer); breakCheckTimer = null; }
 }
 
-// ── End cycle ────────────────────────────────────────────────
 function endCycle() {
   if (!state.running) return;
   if (autoEndTimer) { clearTimeout(autoEndTimer); autoEndTimer = null; }
   stopBreakChecker();
-  // Freeze all station timers
   state.stations.forEach(st => pauseStationTimer(st));
-  state.running    = false;
-  state.paused     = false;
-  state.pauseLabel = null;
-  state.pauseStart = null;
+  state.running = false; state.paused = false;
+  state.pauseLabel = null; state.pauseStart = null;
   state.cycleCount++;
   const elapsed = Math.round(effectiveElapsedMs() / 1000);
   broadcastState();
@@ -193,16 +172,38 @@ function endCycle() {
     time: new Date().toLocaleTimeString(),
     elapsedSeconds: elapsed,
     stations: state.stations.map(s => ({
-      id: s.id,
-      name: s.name,
-      type: s.type,
+      id: s.id, name: s.name, type: s.type,
       completedAt: s.completedAt,
       activeSeconds: Math.round(s.activeMs / 1000),
     })),
   });
 }
 
-// ── Sheets (redirect-safe) ───────────────────────────────────
+// ── Location lookup ──────────────────────────────────────────
+let locationsCache = [];
+async function fetchLocations() {
+  if (!LOCATIONS_URL) return;
+  try {
+    const r = await fetch(LOCATIONS_URL, { redirect: 'follow' });
+    const d = await r.json();
+    if (d.success && d.locations) {
+      locationsCache = d.locations;
+      console.log('Locations loaded:', locationsCache.length);
+    }
+  } catch(e) { console.error('Locations fetch failed:', e.message); }
+}
+fetchLocations();
+setInterval(fetchLocations, 30 * 60 * 1000); // refresh every 30 min
+
+function lookupLocation(partNum, partName) {
+  const match = locationsCache.find(l =>
+    l.partNum.toLowerCase() === String(partNum).toLowerCase() ||
+    l.partName.toLowerCase() === String(partName).toLowerCase()
+  );
+  return match ? { location: match.location, quantity: match.quantity } : { location: '—', quantity: '—' };
+}
+
+// ── Sheets post ──────────────────────────────────────────────
 async function postToSheets(payload) {
   if (!SHEETS_URL) return;
   try {
@@ -214,152 +215,188 @@ async function postToSheets(payload) {
     });
     const text = await res.text();
     console.log('Sheets post response:', res.status, text);
-  } catch (e) { console.error('Sheets post failed:', e.message); }
+  } catch(e) { console.error('Sheets post failed:', e.message); }
 }
 
-// ── REST fallback ────────────────────────────────────────────
+// ── REST endpoints ───────────────────────────────────────────
 app.get('/api/state', (req, res) => {
   res.json({ state, taktSeconds: TAKT_SECONDS, holdReasons: HOLD_REASONS });
 });
-
-// ── Inventory proxy — fetches fresh from Sheets on each call ─
+app.get('/api/requests', (req, res) => {
+  res.json({ requests: allRequests.filter(r => !r.fulfilled) });
+});
 app.get('/api/inventory', async (req, res) => {
   if (!SHEETS_URL) return res.json({ success: false, error: 'SHEETS_URL not set' });
   try {
-    // Convert POST url to GET (same base URL, Apps Script routes by method)
     const r = await fetch(SHEETS_URL, { method: 'GET', redirect: 'follow' });
-    const data = await r.json();
-    res.json(data);
-  } catch (e) {
-    console.error('Inventory fetch failed:', e.message);
-    res.json({ success: false, error: e.message });
-  }
+    const d = await r.json();
+    res.json(d);
+  } catch(e) { res.json({ success: false, error: e.message }); }
+});
+app.get('/api/locations', (req, res) => {
+  res.json({ success: true, locations: locationsCache });
+});
+app.get('/api/lines', (req, res) => {
+  res.json({ lines: OTHER_LINES });
 });
 
-// ── WebSocket ────────────────────────────────────────────────
-wss.on('connection', ws => {
-  ws.send(JSON.stringify({ type: 'state', state, taktSeconds: TAKT_SECONDS, holdReasons: HOLD_REASONS }));
+// ── WebSocket client sets ────────────────────────────────────
+const apolloClients = new Set();
+const pickerClients = new Set();
+
+wss.on('connection', (ws, req) => {
+  const url    = req.url || '';
+  const isPicker = url.includes('picker=1');
+  const isLine   = url.includes('line=');
+
+  if (isPicker) {
+    pickerClients.add(ws);
+    ws.send(JSON.stringify({ type: 'requests', requests: allRequests.filter(r => !r.fulfilled) }));
+  } else {
+    apolloClients.add(ws);
+    ws.send(JSON.stringify({ type: 'state', state, taktSeconds: TAKT_SECONDS, holdReasons: HOLD_REASONS }));
+    ws.send(JSON.stringify({ type: 'requests', requests: allRequests.filter(r => !r.fulfilled) }));
+  }
+
+  ws.on('close', () => { apolloClients.delete(ws); pickerClients.delete(ws); });
 
   ws.on('message', raw => {
     let msg; try { msg = JSON.parse(raw); } catch { return; }
 
-    // ── Start takt ───────────────────────────────────────────
+    // ── Apollo: Start takt ───────────────────────────────────
     if (msg.type === 'start') {
       if (state.running) return;
       const today = todayStr();
       if (state.cycleDate !== today) { state.cycleCount = 0; state.cycleDate = today; }
-      state.running       = true;
-      state.paused        = false;
-      state.pauseLabel    = null;
-      state.pauseStart    = null;
-      state.totalPausedMs = 0;
-      state.stations      = resetStations();
-      const startTime     = Date.now() + 100;
-      state.startTime     = startTime;
-      // Fix stationStartTime to match actual startTime
+      state.running = true; state.paused = false;
+      state.pauseLabel = null; state.pauseStart = null; state.totalPausedMs = 0;
+      state.stations = resetStations();
+      const startTime = Date.now() + 100;
+      state.startTime = startTime;
       state.stations.forEach(st => { st.stationStartTime = startTime; });
-      broadcast({ type: 'start', startTime, taktSeconds: TAKT_SECONDS, stations: state.stations, cycleCount: state.cycleCount, holdReasons: HOLD_REASONS });
+      broadcastApollo({ type: 'start', startTime, taktSeconds: TAKT_SECONDS, stations: state.stations, cycleCount: state.cycleCount, holdReasons: HOLD_REASONS });
       startBreakChecker();
     }
 
-    // ── Manual pause toggle ──────────────────────────────────
+    // ── Apollo: Pause toggle ─────────────────────────────────
     if (msg.type === 'pause') {
       if (!state.running) return;
       if (state.paused && state.pauseLabel === 'Paused') resumeCycle();
       else if (!state.paused) pauseCycle('Paused');
     }
 
-    // ── Station start (worker presses Start) ─────────────────
+    // ── Apollo: Station start ────────────────────────────────
     if (msg.type === 'station-start') {
       const st = state.stations.find(s => s.id === msg.stationId);
       if (st && !st.done && state.running && !state.paused) {
-        st.stationStatus    = 'active';
-        st.holdReason       = null;
+        st.stationStatus = 'active'; st.holdReason = null;
         st.stationStartTime = Date.now();
         broadcastState();
       }
     }
 
-    // ── Station hold (worker or board puts on hold) ──────────
+    // ── Apollo: Station hold ─────────────────────────────────
     if (msg.type === 'station-hold') {
       const st = state.stations.find(s => s.id === msg.stationId);
       if (st && !st.done) {
         pauseStationTimer(st);
-        st.stationStatus = 'hold';
-        st.holdReason    = msg.reason || 'No operator assigned';
+        st.stationStatus = 'hold'; st.holdReason = msg.reason || 'No operator assigned';
         st.stationStartTime = null;
         broadcastState();
       }
     }
 
-    // ── Station done ─────────────────────────────────────────
+    // ── Apollo: Station done ─────────────────────────────────
     if (msg.type === 'done') {
       const st = state.stations.find(s => s.id === msg.stationId);
       if (st && !st.done && state.running) {
-        // Freeze station timer
         pauseStationTimer(st);
-        st.stationStatus = 'hold';
-        st.done          = true;
-        const andonPausedMs = (st.totalAndonPause || 0) + (st.andonPauseStart ? Date.now() - st.andonPauseStart : 0);
-        st.completedAt   = Math.round((effectiveElapsedMs() - andonPausedMs) / 1000);
+        st.stationStatus = 'hold'; st.done = true;
+        const andonMs = (st.totalAndonPause || 0) + (st.andonPauseStart ? Date.now() - st.andonPauseStart : 0);
+        st.completedAt = Math.round((effectiveElapsedMs() - andonMs) / 1000);
         broadcastState();
         if (state.stations.every(s => s.done)) endCycle();
       }
     }
 
-    // ── Inventory request ────────────────────────────────────
-    if (msg.type === 'request') {
-      const st = state.stations.find(s => s.id === msg.stationId);
-      if (st && typeof msg.text === 'string' && msg.text.trim()) {
-        st.requests.push({
-          id: nextReqId++,
-          text: msg.text.trim().slice(0, 120),
-          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        });
-        broadcastState();
-      }
-    }
-
-    // ── Dismiss inventory request ────────────────────────────
-    if (msg.type === 'dismiss') {
-      const st = state.stations.find(s => s.id === msg.stationId);
-      if (st) { st.requests = st.requests.filter(r => r.id !== msg.reqId); broadcastState(); }
-    }
-
-    // ── Andon call ───────────────────────────────────────────
+    // ── Apollo: Andon ────────────────────────────────────────
     if (msg.type === 'andon') {
       const st = state.stations.find(s => s.id === msg.stationId);
       if (st && (msg.level === 'line-lead' || msg.level === 'floor-manager')) {
-        st.andon           = msg.level;
-        st.andonTime       = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        st.andon = msg.level;
+        st.andonTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         st.andonPauseStart = Date.now();
-        // Also pause station active timer
         pauseStationTimer(st);
         broadcastState();
       }
     }
-
-    // ── Andon clear ──────────────────────────────────────────
     if (msg.type === 'andon-clear') {
       const st = state.stations.find(s => s.id === msg.stationId);
       if (st) {
-        if (st.andonPauseStart) {
-          st.totalAndonPause  += Date.now() - st.andonPauseStart;
-          st.andonPauseStart   = null;
-        }
-        st.andon     = null;
-        st.andonTime = null;
-        // Resume station timer if it was active before andon
-        if (st.stationStatus === 'active' && !state.paused) {
-          st.stationStartTime = Date.now();
-        }
+        if (st.andonPauseStart) { st.totalAndonPause += Date.now() - st.andonPauseStart; st.andonPauseStart = null; }
+        st.andon = null; st.andonTime = null;
+        if (st.stationStatus === 'active' && !state.paused) st.stationStartTime = Date.now();
         broadcastState();
       }
     }
 
-    // ── Manual end ───────────────────────────────────────────
+    // ── Inventory request (Apollo worker or line page) ───────
+    if (msg.type === 'request') {
+      const stName   = msg.station || null;
+      const loc      = lookupLocation(msg.partNum || '', msg.partName || '');
+      const req = {
+        id:        nextReqId++,
+        line:      msg.line || 'Apollo',
+        station:   stName,
+        partNum:   msg.partNum  || '',
+        partName:  msg.partName || '',
+        text:      msg.text     || '',
+        qty:       msg.qty      || 1,
+        location:  loc.location,
+        stockQty:  loc.quantity,
+        time:      new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        fulfilled: false,
+      };
+
+      // Also attach to Apollo station if applicable
+      if (msg.stationId) {
+        const st = state.stations.find(s => s.id === msg.stationId);
+        if (st) {
+          st.requests = st.requests || [];
+          st.requests.push({ id: req.id, text: req.text || (req.partNum + ' — ' + req.partName), time: req.time });
+          broadcastState();
+        }
+      }
+
+      allRequests.push(req);
+      broadcastRequests();
+    }
+
+    // ── Dismiss (Apollo station card) ────────────────────────
+    if (msg.type === 'dismiss') {
+      const st = state.stations.find(s => s.id === msg.stationId);
+      if (st) { st.requests = (st.requests || []).filter(r => r.id !== msg.reqId); broadcastState(); }
+      const req = allRequests.find(r => r.id === msg.reqId);
+      if (req) { req.fulfilled = true; broadcastRequests(); }
+    }
+
+    // ── Picker: fulfill request ──────────────────────────────
+    if (msg.type === 'fulfill') {
+      const req = allRequests.find(r => r.id === msg.reqId);
+      if (req) {
+        req.fulfilled = true;
+        // Also remove from Apollo station if matched
+        state.stations.forEach(st => {
+          if (st.requests) st.requests = st.requests.filter(r => r.id !== msg.reqId);
+        });
+        broadcastState();
+        broadcastRequests();
+      }
+    }
+
+    // ── Apollo: Manual end ───────────────────────────────────
     if (msg.type === 'end') endCycle();
   });
 });
 
-server.listen(PORT, () => console.log(`Lightboard running on port ${PORT}`));
+server.listen(PORT, () => console.log(`LangmuirPMS running on port ${PORT}`));
