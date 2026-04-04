@@ -414,9 +414,18 @@ wss.on('connection', (ws, req) => {
           }).then(r => r.json())
             .then(d => {
               console.log('Qty subtracted:', d);
-              if (d.success) {
-                // Force refresh cache immediately after subtract
-                fetchLocations();
+              if (d.success && d.newQty !== undefined) {
+                // Immediately update cache for the specific location
+                const loc = locationsCache.find(l =>
+                  l.partNum.toLowerCase() === (req.partNum || '').toLowerCase() &&
+                  l.location.toLowerCase() === (msg.location || '').toLowerCase()
+                );
+                if (loc) {
+                  loc.quantity = String(d.newQty);
+                  console.log('Cache updated:', loc.location, loc.partNum, '→', d.newQty);
+                } else {
+                  console.log('Cache entry not found for:', req.partNum, msg.location);
+                }
               }
             })
             .catch(e => console.error('Subtract failed:', e.message));
