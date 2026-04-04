@@ -396,8 +396,7 @@ wss.on('connection', (ws, req) => {
     if (msg.type === 'fulfill') {
       const req = allRequests.find(r => r.id === msg.reqId);
       console.log('Fulfill received:', { reqId: msg.reqId, location: msg.location, partNum: req?.partNum, qty: req?.qty });
-      if (req) {
-        req.fulfilled = true;
+      if (req) {        req.fulfilled = true;
         // Subtract quantity from sheet
         if (LOCATIONS_URL && (req.partNum || req.partName)) {
           fetch(LOCATIONS_URL, {
@@ -415,7 +414,6 @@ wss.on('connection', (ws, req) => {
             .then(d => {
               console.log('Qty subtracted:', d);
               if (d.success && d.newQty !== undefined) {
-                // Immediately update cache for the specific location
                 const loc = locationsCache.find(l =>
                   l.partNum.toLowerCase() === (req.partNum || '').toLowerCase() &&
                   l.location.toLowerCase() === (msg.location || '').toLowerCase()
@@ -423,6 +421,9 @@ wss.on('connection', (ws, req) => {
                 if (loc) {
                   loc.quantity = String(d.newQty);
                   console.log('Cache updated:', loc.location, loc.partNum, '→', d.newQty);
+                  // Broadcast fresh locations to all picker clients immediately
+                  const locMsg = JSON.stringify({ type: 'locations', locations: locationsCache });
+                  pickerClients.forEach(c => { if (c.readyState === 1) c.send(locMsg); });
                 } else {
                   console.log('Cache entry not found for:', req.partNum, msg.location);
                 }
