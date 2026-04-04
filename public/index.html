@@ -18,12 +18,13 @@
   .brand-text .btm { font-size: 17px; font-weight: 800; color: #fff; letter-spacing: 0.06em; text-transform: uppercase; }
 
   /* ── Takt timer in header ── */
-  .takt-pill { text-align: center; padding: 8px 32px; border-left: 1px solid #2d3340; border-right: 1px solid #2d3340; }
-  .takt-label { font-size: 10px; font-weight: 700; color: #6b7280; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 2px; }
-  .takt-time  { font-size: 38px; font-weight: 900; letter-spacing: -1px; color: #EF9F27; line-height: 1; transition: color 0.3s; }
+  .takt-pill { text-align: center; padding: 10px 48px; border-left: 1px solid #2d3340; border-right: 1px solid #2d3340; }
+  .takt-label { font-size: 10px; font-weight: 700; color: #6b7280; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 4px; }
+  .takt-time  { font-size: 64px; font-weight: 900; letter-spacing: -3px; color: #EF9F27; line-height: 1; transition: color 0.3s; }
   .takt-time.warning { color: #f97316; }
-  .takt-time.over    { color: #C8102E; }
+  .takt-time.over    { color: #C8102E; animation: flash-red 0.8s ease-in-out infinite; }
   .takt-time.paused  { color: #60a5fa; }
+  @keyframes flash-red { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
   .datetime .date  { font-size: 11px; color: #6b7280; text-align: right; }
   .datetime .clock { font-size: 17px; font-weight: 700; color: #fff; text-align: right; }
