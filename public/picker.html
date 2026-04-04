@@ -138,6 +138,14 @@ function fulfill(reqId, location) {
   ws.send(JSON.stringify({ type: 'fulfill', reqId, location }));
 }
 
+function fulfillLoc(reqId, locIdx) {
+  const req      = requests.find(r => r.id === reqId);
+  if (!req) return;
+  const locs     = getLocsForPart(req.partNum);
+  const location = locs[locIdx]?.location || '';
+  ws.send(JSON.stringify({ type: 'fulfill', reqId, location }));
+}
+
 // ── Line color class ──────────────────────────────────────
 function lineClass(line) {
   const map = { 'Apollo':'apollo','APOLLO':'apollo','XF/PRO':'xf','TITAN':'titan','VULCAN':'vulcan','XR':'xr','MR1':'mr1' };
@@ -167,13 +175,13 @@ function render() {
     const totalQty  = locs.reduce((s, l) => s + (parseInt(l.quantity) || 0), 0);
 
     const locRows = locs.length
-      ? locs.map(l => {
+      ? locs.map((l, idx) => {
           const lq    = parseInt(l.quantity) || 0;
           const isLow = lq < qtyNeeded;
           return '<div class="loc-row">' +
             '<span class="loc-name">📍 ' + esc(l.location) + '</span>' +
             '<span class="loc-qty ' + (isLow ? 'low' : 'ok') + '">' + (isLow ? '⚠️ ' : '') + lq + ' in stock</span>' +
-            '<button class="pick-btn" onclick="fulfill(' + r.id + ',\'' + esc(l.location) + '\')">✓ Pick</button>' +
+            '<button class="pick-btn" onclick="fulfillLoc(' + r.id + ',' + idx + ')">✓ Pick</button>' +
             '</div>';
         }).join('')
       : '<div class="no-loc">No warehouse location found for this part</div>';
