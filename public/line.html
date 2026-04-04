@@ -16,40 +16,48 @@
   .card { background: #141414; border: 1.5px solid #222; border-radius: 14px; padding: 20px; width: 100%; max-width: 400px; margin-bottom: 20px; }
 
   .inv-loading { font-size: 13px; color: #555; padding: 8px 0; }
-  .inv-form    { display: flex; gap: 8px; margin-bottom: 10px; }
-  .inv-select  { flex: 1; min-width: 0; background: #1e1030; border: 1.5px solid #554477; border-radius: 10px; color: #C89EF0; font-size: 14px; padding: 10px 14px; outline: none; cursor: pointer; }
-  .inv-select:focus { border-color: #9B6BCC; }
-  .inv-select option { background: #1e1030; }
 
-  .qty-row     { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-  .qty-label   { font-size: 13px; color: #888; }
-  .qty-input   { width: 70px; background: #222; border: 1.5px solid #554477; border-radius: 10px; color: #fff; font-size: 20px; font-weight: 800; padding: 8px 10px; text-align: center; outline: none; -webkit-appearance: none; }
+  select { width: 100%; background: #1e1030; border: 1.5px solid #554477; border-radius: 10px; color: #C89EF0; font-size: 14px; padding: 10px 14px; outline: none; cursor: pointer; margin-bottom: 12px; }
+  select option { background: #1e1030; }
+  select:focus { border-color: #9B6BCC; }
+
+  .stock-info { font-size: 12px; margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; }
+  .stock-ok   { color: #97C459; border: 1px solid #63992244; background: #0d1f0a; }
+  .stock-warn { color: #E24B4A; border: 1px solid #E24B4A44; background: #2a0a0a; }
+  .stock-loc  { color: #EF9F27; font-weight: 600; }
+
+  .qty-row   { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .qty-label { font-size: 14px; color: #888; }
+  .qty-input {
+    width: 80px; background: #222; border: 1.5px solid #554477;
+    border-radius: 10px; color: #fff; font-size: 22px; font-weight: 800;
+    padding: 8px 10px; text-align: center; outline: none;
+    -webkit-appearance: none; -moz-appearance: textfield;
+  }
   .qty-input:focus { border-color: #9B6BCC; }
-  .stock-info  { font-size: 12px; margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; background: #1a1a1a; border: 1px solid #2a2a2a; }
-  .stock-ok    { color: #97C459; border-color: #63992244; background: #0d1f0a; }
-  .stock-warn  { color: #E24B4A; border-color: #E24B4A44; background: #2a0a0a; }
-  .stock-loc   { color: #EF9F27; font-weight: 600; }
 
-  .send-btn    { width: 100%; padding: 14px; border-radius: 12px; border: none; background: #9B6BCC; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }
+  .send-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: #9B6BCC; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; margin-bottom: 10px; }
   .send-btn:hover { background: #7A4BAA; }
   .send-btn:active { transform: scale(0.98); }
+  .send-btn.secondary { background: #333; }
+  .send-btn.secondary:hover { background: #444; }
 
-  .divider { display: flex; align-items: center; gap: 10px; margin: 4px 0 16px; width: 100%; }
+  .divider { display: flex; align-items: center; gap: 10px; margin: 8px 0 14px; }
   .divider hr { flex: 1; border: none; border-top: 1px solid #2a2a2a; }
   .divider span { font-size: 11px; color: #444; }
 
-  .text-input  { width: 100%; background: #222; border: 1.5px solid #333; border-radius: 10px; color: #fff; font-size: 14px; padding: 10px 14px; outline: none; margin-bottom: 12px; }
+  .text-input { width: 100%; background: #222; border: 1.5px solid #333; border-radius: 10px; color: #fff; font-size: 14px; padding: 10px 14px; outline: none; margin-bottom: 12px; }
   .text-input:focus { border-color: #9B6BCC; }
   .text-input::placeholder { color: #555; }
 
-  .req-list    { width: 100%; max-width: 400px; }
-  .req-item    { background: #1e1030; border: 1px solid #9B6BCC44; border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px; }
-  .req-text    { flex: 1; font-size: 13px; color: #C89EF0; word-break: break-word; }
-  .req-meta    { font-size: 10px; color: #666; margin-top: 2px; }
-  .req-cancel  { background: none; border: none; color: #9B6BCC; cursor: pointer; font-size: 16px; padding: 0; flex-shrink: 0; }
-  .req-cancel:hover { color: #E24B4A; }
+  .sent-flash { background: #0d2a0d; border: 1.5px solid #63992266; border-radius: 10px; padding: 12px; text-align: center; color: #97C459; font-size: 15px; font-weight: 700; display: none; margin-bottom: 10px; }
 
-  .sent-flash { background: #0d2a0d; border: 1.5px solid #63992266; border-radius: 12px; padding: 14px; text-align: center; color: #97C459; font-size: 15px; font-weight: 700; display: none; margin-bottom: 12px; }
+  .req-list { width: 100%; max-width: 400px; }
+  .req-item { background: #1e1030; border: 1px solid #9B6BCC44; border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px; }
+  .req-text { flex: 1; font-size: 13px; color: #C89EF0; word-break: break-word; }
+  .req-meta { font-size: 10px; color: #666; margin-top: 2px; }
+  .req-cancel { background: none; border: none; color: #9B6BCC; cursor: pointer; font-size: 16px; padding: 0; flex-shrink: 0; }
+  .req-cancel:hover { color: #E24B4A; }
 </style>
 </head>
 <body>
@@ -60,40 +68,43 @@
 <div class="section-label">Select from inventory</div>
 <div class="card">
   <div id="inv-loading" class="inv-loading">Loading inventory...</div>
+
   <div id="inv-form" style="display:none">
-    <div class="inv-form">
-      <select class="inv-select" id="inv-select">
-        <option value="">— Select a part —</option>
-      </select>
-    </div>
+    <select id="inv-select">
+      <option value="">— Select a part —</option>
+    </select>
+
+    <div id="stock-info" style="display:none" class="stock-info"></div>
+
     <div class="qty-row">
       <span class="qty-label">Qty:</span>
-      <button class="qty-btn" onclick="changeQty(-1)">−</button>
-      <span class="qty-val" id="qty-val">1</span>
-      <button class="qty-btn" onclick="changeQty(1)">+</button>
+      <input class="qty-input" id="qty-input" type="number" inputmode="numeric"
+             min="1" value="1" placeholder="1"/>
     </div>
+
     <div class="sent-flash" id="sent-flash">✓ Request sent!</div>
-    <button class="send-btn" onclick="sendDropdown()">📦 Send Request</button>
+    <button class="send-btn" id="send-dropdown-btn">📦 Send Request</button>
   </div>
 
-  <div class="divider"><hr/><span>or</span><hr/></div>
+  <div class="divider"><hr/><span>or type a custom request</span><hr/></div>
 
-  <input class="text-input" id="text-input" type="text" maxlength="120" placeholder="Type a custom request..." onkeydown="if(event.key==='Enter')sendText()"/>
-  <button class="send-btn" style="background:#555" onclick="sendText()">Send Custom Request</button>
+  <input class="text-input" id="text-input" type="text" maxlength="120" placeholder="Describe what you need..."/>
+  <button class="send-btn secondary" id="send-text-btn">Send Custom Request</button>
 </div>
 
 <div class="section-label">Active requests</div>
 <div class="req-list" id="req-list"></div>
 
 <script>
-const params  = new URLSearchParams(location.search);
+const params   = new URLSearchParams(location.search);
 const lineName = decodeURIComponent(params.get('line') || 'Unknown');
 document.getElementById('line-name').textContent = lineName;
 document.title = lineName + ' — Inventory';
 
 const ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'?line='+encodeURIComponent(lineName));
-let myRequests = [], qty = 1, nextId = 1;
+let myRequests = [];
 
+// ── WebSocket ─────────────────────────────────────────────
 ws.onmessage = e => {
   const msg = JSON.parse(e.data);
   if (msg.type === 'requests') {
@@ -111,23 +122,19 @@ setInterval(async () => {
   } catch {}
 }, 3000);
 
-// Part data keyed by "partNum|partName"
-let partData = {};
-
+// ── Inventory load ────────────────────────────────────────
 async function loadInventory() {
   try {
     const r = await fetch('/api/inventory');
     const d = await r.json();
     if (d.success && d.inventory) {
       const items = d.inventory[lineName] || [];
-      const sel   = document.getElementById('inv-select');
+      if (d.locations) window._locations = d.locations;
+      const sel = document.getElementById('inv-select');
       if (items.length) {
         sel.innerHTML = '<option value="">— Select a part —</option>' +
-          items.map(i => {
-            const key = esc(i.partNum + '|' + i.partName);
-            partData[i.partNum + '|' + i.partName] = i;
-            return `<option value="${key}">${esc(i.partNum)} — ${esc(i.partName)}</option>`;
-          }).join('');
+          items.map(i => '<option value="' + esc(i.partNum + '|' + i.partName) + '">' +
+            esc(i.partNum) + ' — ' + esc(i.partName) + '</option>').join('');
         document.getElementById('inv-loading').style.display = 'none';
         document.getElementById('inv-form').style.display    = '';
       } else {
@@ -135,55 +142,43 @@ async function loadInventory() {
         document.getElementById('inv-form').style.display  = '';
       }
     }
-    // Also load locations for stock info
-    if (d.success && d.locations) {
-      window._locations = d.locations;
-    }
   } catch(e) {
     document.getElementById('inv-loading').textContent = 'Could not load inventory';
     document.getElementById('inv-form').style.display  = '';
   }
 }
-
-function onQtyChange() {
-  onPartSelected();
-}
-
-function onPartSelected() {
-  const sel      = document.getElementById('inv-select');
-  const stockEl  = document.getElementById('stock-info');
-  if (!sel.value) { stockEl.style.display = 'none'; return; }
-  const [partNum, ...rest] = sel.value.split('|');
-  const partName = rest.join('|');
-  const qty = Math.max(1, parseInt(document.getElementById('qty-input').value) || 1);
-  const match    = locs.find(l =>
-    l.partNum.toLowerCase() === partNum.toLowerCase() ||
-    l.partName.toLowerCase() === partName.toLowerCase()
-  );
-  if (match) {
-    const inStock  = parseInt(match.quantity) || 0;
-    const isLow    = inStock < qty;
-    stockEl.style.display = '';
-    stockEl.className     = 'stock-info ' + (isLow ? 'stock-warn' : 'stock-ok');
-    stockEl.innerHTML     =
-      `<span class="stock-loc">📍 ${esc(match.location)}</span> &nbsp;·&nbsp; ` +
-      `${isLow ? '⚠️ Low stock: ' : 'In stock: '}<strong>${inStock}</strong>`;
-  } else {
-    stockEl.style.display = '';
-    stockEl.className     = 'stock-info';
-    stockEl.innerHTML     = 'No location data found';
-  }
-}
 loadInventory();
 
-function onQtyChange() {
-  const el = document.getElementById('qty-input');
-  const val = parseInt(el.value);
-  qty = (isNaN(val) || val < 1) ? 1 : val;
-  onPartSelected();
+// ── Part selected — show stock info ───────────────────────
+document.getElementById('inv-select').addEventListener('change', showStockInfo);
+document.getElementById('qty-input').addEventListener('input', showStockInfo);
+
+function showStockInfo() {
+  const sel     = document.getElementById('inv-select');
+  const stockEl = document.getElementById('stock-info');
+  if (!sel.value) { stockEl.style.display = 'none'; return; }
+
+  const [partNum] = sel.value.split('|');
+  const qty       = Math.max(1, parseInt(document.getElementById('qty-input').value) || 1);
+  const locs      = window._locations || [];
+  const matches   = locs.filter(l => l.partNum.toLowerCase() === partNum.toLowerCase());
+
+  if (matches.length) {
+    const totalQty = matches.reduce((s, l) => s + (parseInt(l.quantity) || 0), 0);
+    const isLow    = totalQty < qty;
+    const locList  = matches.map(l => l.location).join(', ');
+    stockEl.style.display = '';
+    stockEl.className     = 'stock-info ' + (isLow ? 'stock-warn' : 'stock-ok');
+    stockEl.innerHTML     = (isLow ? '⚠️ Low stock: ' : 'Total in stock: ') +
+      '<strong>' + totalQty + '</strong>' +
+      (locList ? ' &nbsp;·&nbsp; <span class="stock-loc">📍 ' + esc(locList) + '</span>' : '');
+  } else {
+    stockEl.style.display = 'none';
+  }
 }
 
-function sendDropdown() {
+// ── Send from dropdown ────────────────────────────────────
+document.getElementById('send-dropdown-btn').addEventListener('click', function() {
   const sel = document.getElementById('inv-select');
   if (!sel.value) return;
   const qty = Math.max(1, parseInt(document.getElementById('qty-input').value) || 1);
@@ -194,17 +189,23 @@ function sendDropdown() {
   document.getElementById('qty-input').value = '1';
   document.getElementById('stock-info').style.display = 'none';
   flashSent();
-}
+});
 
-function sendText() {
+// ── Send custom text ──────────────────────────────────────
+document.getElementById('send-text-btn').addEventListener('click', function() {
   const input = document.getElementById('text-input');
   const text  = input.value.trim();
   if (!text) return;
   ws.send(JSON.stringify({ type: 'request', line: lineName, text, qty: 1 }));
   input.value = '';
   flashSent();
-}
+});
 
+document.getElementById('text-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') document.getElementById('send-text-btn').click();
+});
+
+// ── Helpers ───────────────────────────────────────────────
 function flashSent() {
   const el = document.getElementById('sent-flash');
   el.style.display = 'block';
@@ -218,14 +219,13 @@ function cancelReq(id) {
 function renderList() {
   const el = document.getElementById('req-list');
   if (!myRequests.length) { el.innerHTML = ''; return; }
-  el.innerHTML = myRequests.map(r => `
-    <div class="req-item">
-      <div style="flex:1">
-        <div class="req-text">${esc(r.text || (r.partNum + ' — ' + r.partName))}</div>
-        <div class="req-meta">Qty: ${r.qty || 1} · ${r.time}</div>
-      </div>
-      <button class="req-cancel" onclick="cancelReq(${r.id})">✕</button>
-    </div>`).join('');
+  el.innerHTML = myRequests.map(r =>
+    '<div class="req-item">' +
+    '<div style="flex:1"><div class="req-text">' + esc(r.text || (r.partNum + ' — ' + r.partName)) + '</div>' +
+    '<div class="req-meta">Qty: ' + (r.qty || 1) + ' · ' + r.time + '</div></div>' +
+    '<button class="req-cancel" onclick="cancelReq(' + r.id + ')">✕</button>' +
+    '</div>'
+  ).join('');
 }
 
 function esc(str) {
