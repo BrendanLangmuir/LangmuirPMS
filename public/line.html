@@ -166,12 +166,10 @@ function showStockInfo() {
   if (matches.length) {
     const totalQty = matches.reduce((s, l) => s + (parseInt(l.quantity) || 0), 0);
     const isLow    = totalQty < qty;
-    const locList  = matches.map(l => l.location).join(', ');
     stockEl.style.display = '';
     stockEl.className     = 'stock-info ' + (isLow ? 'stock-warn' : 'stock-ok');
     stockEl.innerHTML     = (isLow ? '⚠️ Low stock: ' : 'Total in stock: ') +
-      '<strong>' + totalQty + '</strong>' +
-      (locList ? ' &nbsp;·&nbsp; <span class="stock-loc">📍 ' + esc(locList) + '</span>' : '');
+      '<strong>' + totalQty + '</strong>';
   } else {
     stockEl.style.display = 'none';
   }
