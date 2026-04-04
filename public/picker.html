@@ -32,7 +32,7 @@
   .req-card.titan  { border-left: 4px solid #EF9F27; }
   .req-card.vulcan { border-left: 4px solid #E24B4A; }
   .req-card.xr     { border-left: 4px solid #639922; }
-  .req-card.mr1    { border-left: 4px solid #378ADD; }
+  .req-card.mr1    { border-left: 4px solid #EF9F27; }
 
   .req-top     { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
   .req-line    { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #378ADD; }
@@ -41,17 +41,17 @@
   .req-part    { font-size: 16px; font-weight: 700; color: #eee; margin-bottom: 2px; word-break: break-word; }
   .req-partnum { font-size: 12px; color: #666; margin-bottom: 8px; }
 
-  .req-meta    { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
-  .meta-lbl    { font-size: 12px; color: #555; }
-  .meta-val    { font-size: 12px; color: #eee; font-weight: 600; margin-left: 4px; }
-  .qty-badge   { background: #2a200a; border: 1px solid #EF9F2766; color: #EF9F27; font-size: 12px; font-weight: 700; border-radius: 8px; padding: 3px 10px; }
+  .req-meta  { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .meta-lbl  { font-size: 12px; color: #555; }
+  .meta-val  { font-size: 12px; color: #eee; font-weight: 600; margin-left: 4px; }
+  .qty-badge { background: #2a200a; border: 1px solid #EF9F2766; color: #EF9F27; font-size: 12px; font-weight: 700; border-radius: 8px; padding: 3px 10px; }
 
-  .loc-row     { display: flex; align-items: center; gap: 10px; background: #111; border-radius: 10px; padding: 10px 12px; margin-top: 6px; }
-  .loc-name    { font-size: 14px; font-weight: 700; color: #EF9F27; flex: 1; }
-  .loc-qty     { font-size: 13px; font-weight: 600; min-width: 60px; text-align: right; }
+  .loc-row  { display: flex; align-items: center; gap: 10px; background: #111; border-radius: 10px; padding: 10px 12px; margin-top: 6px; }
+  .loc-name { font-size: 14px; font-weight: 700; color: #EF9F27; flex: 1; }
+  .loc-qty  { font-size: 13px; font-weight: 600; min-width: 80px; text-align: right; }
   .loc-qty.ok  { color: #97C459; }
   .loc-qty.low { color: #E24B4A; }
-  .pick-btn    { background: #0d2a0d; border: 1.5px solid #63992266; color: #97C459; font-size: 13px; font-weight: 700; border-radius: 10px; padding: 8px 16px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+  .pick-btn { background: #0d2a0d; border: 1.5px solid #63992266; color: #97C459; font-size: 13px; font-weight: 700; border-radius: 10px; padding: 8px 16px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
   .pick-btn:hover  { background: #1a3a1a; }
   .pick-btn:active { transform: scale(0.96); }
 
@@ -72,13 +72,13 @@
 </div>
 
 <div class="filter-bar">
-  <button class="filter-btn active" onclick="setFilter('all')"     id="filter-all">All Lines</button>
-  <button class="filter-btn"        onclick="setFilter('Apollo')"  id="filter-Apollo">Apollo</button>
-  <button class="filter-btn"        onclick="setFilter('XF/PRO')"  id="filter-XF/PRO">XF/PRO</button>
-  <button class="filter-btn"        onclick="setFilter('TITAN')"   id="filter-TITAN">Titan</button>
-  <button class="filter-btn"        onclick="setFilter('VULCAN')"  id="filter-VULCAN">Vulcan</button>
-  <button class="filter-btn"        onclick="setFilter('XR')"      id="filter-XR">XR</button>
-  <button class="filter-btn"        onclick="setFilter('MR1')"     id="filter-MR1">MR1</button>
+  <button class="filter-btn active" onclick="setFilter('all')"    id="filter-all">All Lines</button>
+  <button class="filter-btn" onclick="setFilter('Apollo')"  id="filter-Apollo">Apollo</button>
+  <button class="filter-btn" onclick="setFilter('XF/PRO')"  id="filter-XF/PRO">XF/PRO</button>
+  <button class="filter-btn" onclick="setFilter('TITAN')"   id="filter-TITAN">Titan</button>
+  <button class="filter-btn" onclick="setFilter('VULCAN')"  id="filter-VULCAN">Vulcan</button>
+  <button class="filter-btn" onclick="setFilter('XR')"      id="filter-XR">XR</button>
+  <button class="filter-btn" onclick="setFilter('MR1')"     id="filter-MR1">MR1</button>
 </div>
 
 <div class="queue" id="queue">
@@ -86,123 +86,105 @@
 </div>
 
 <script>
-// Store location data keyed by a simple numeric key to avoid any string passing issues
-const pickMap = {};
-let pickMapKey = 0;
+// ── State ─────────────────────────────────────────────────
+var requests      = [];
+var locationsData = [];
+var activeFilter  = 'all';
+var pickMap       = {};
+var pickKey       = 0;
 
 // ── WebSocket ─────────────────────────────────────────────
-const ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'?picker=1');
-ws.onmessage = e => {
-  const msg = JSON.parse(e.data);
+var ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'?picker=1');
+ws.onopen = function() { console.log('WS connected'); };
+ws.onmessage = function(e) {
+  var msg = JSON.parse(e.data);
   if (msg.type === 'requests')  { requests = msg.requests; render(); }
   if (msg.type === 'locations') { locationsData = msg.locations; render(); }
 };
+ws.onclose = function() { console.log('WS closed'); };
+ws.onerror = function(e) { console.error('WS error', e); };
 
-// ── Polling fallback ──────────────────────────────────────
-setInterval(async () => {
-  try {
-    const d = await (await fetch('/api/requests')).json();
+// ── Polling fallback every 3s ─────────────────────────────
+setInterval(function() {
+  fetch('/api/requests').then(function(r) { return r.json(); }).then(function(d) {
     requests = d.requests; render();
-  } catch {}
+  }).catch(function(){});
 }, 3000);
 
 // ── Load locations ────────────────────────────────────────
-async function loadLocations() {
-  try {
-    const r = await fetch('/api/locations');
-    const d = await r.json();
-    if (d.success && d.locations) {
-      locationsData = d.locations;
-      render();
-    }
-  } catch(e) { console.error('Locations load failed:', e.message); }
+function loadLocations() {
+  fetch('/api/locations').then(function(r) { return r.json(); }).then(function(d) {
+    if (d.success && d.locations) { locationsData = d.locations; render(); }
+  }).catch(function(e) { console.error('Locations load failed:', e); });
 }
 loadLocations();
-setInterval(loadLocations, 60000);
+setInterval(loadLocations, 30000);
 
+// ── Get locations for a part number ──────────────────────
 function getLocsForPart(partNum) {
   if (!partNum) return [];
-  return locationsData.filter(l => l.partNum.toLowerCase() === partNum.toLowerCase());
+  return locationsData.filter(function(l) {
+    return l.partNum.toLowerCase() === partNum.toLowerCase();
+  });
 }
 
 // ── Filter ────────────────────────────────────────────────
 function setFilter(f) {
   activeFilter = f;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  const el = document.getElementById('filter-' + f);
+  document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  var el = document.getElementById('filter-' + f);
   if (el) el.classList.add('active');
   render();
 }
 
-// ── Fulfill ───────────────────────────────────────────────
-function fulfill(reqId, location) {
-  ws.send(JSON.stringify({ type: 'fulfill', reqId, location }));
-}
-
+// ── Pick handler — uses pickMap to avoid string issues ────
 function handlePick(key) {
-  const entry = pickMap[key];
-  if (!entry) { console.error('pickMap entry not found:', key); return; }
-  console.log('handlePick:', entry.reqId, entry.location);
+  var entry = pickMap[key];
+  if (!entry) { console.error('No pickMap entry for key:', key); return; }
+  console.log('Picking:', entry.reqId, entry.location);
   ws.send(JSON.stringify({ type: 'fulfill', reqId: entry.reqId, location: entry.location }));
 }
 
-function fulfillDirect(reqId, location) {
-  console.log('fulfillDirect called: reqId=' + reqId + ' location=' + location);
-  ws.send(JSON.stringify({ type: 'fulfill', reqId, location }));
-}
-
-function fulfillLoc(reqId, locIdx) {
-  const req  = requests.find(r => r.id === reqId);
-  if (!req) { console.error('Request not found:', reqId); return; }
-  const locs = getLocsForPart(req.partNum);
-  console.log('fulfillLoc called: reqId=' + reqId + ' locIdx=' + locIdx + ' locs=' + JSON.stringify(locs));
-  if (!locs[locIdx]) { console.error('Location index not found:', locIdx); return; }
-  const location = locs[locIdx].location;
-  console.log('Sending fulfill with location:', location);
-  ws.send(JSON.stringify({ type: 'fulfill', reqId, location }));
-}
-
-// ── Line color class ──────────────────────────────────────
+// ── Line color ────────────────────────────────────────────
 function lineClass(line) {
-  const map = { 'Apollo':'apollo','APOLLO':'apollo','XF/PRO':'xf','TITAN':'titan','VULCAN':'vulcan','XR':'xr','MR1':'mr1' };
+  var map = { 'Apollo':'apollo','APOLLO':'apollo','XF/PRO':'xf','TITAN':'titan','VULCAN':'vulcan','XR':'xr','MR1':'mr1' };
   return map[line] || 'apollo';
 }
 
 // ── Render ────────────────────────────────────────────────
 function render() {
-  const filtered = activeFilter === 'all' ? requests : requests.filter(r => r.line === activeFilter);
+  var filtered = activeFilter === 'all'
+    ? requests
+    : requests.filter(function(r) { return r.line === activeFilter; });
 
   document.getElementById('total-count').textContent  = requests.length;
-  document.getElementById('apollo-count').textContent = requests.filter(r => r.line === 'Apollo' || r.line === 'APOLLO').length;
-  document.getElementById('other-count').textContent  = requests.filter(r => r.line !== 'Apollo' && r.line !== 'APOLLO').length;
+  document.getElementById('apollo-count').textContent = requests.filter(function(r) { return r.line === 'Apollo' || r.line === 'APOLLO'; }).length;
+  document.getElementById('other-count').textContent  = requests.filter(function(r) { return r.line !== 'Apollo' && r.line !== 'APOLLO'; }).length;
 
-  const queue = document.getElementById('queue');
-  if (!filtered.length) {
-    queue.innerHTML = '<div class="empty">No pending requests</div>';
-    return;
-  }
+  var queue = document.getElementById('queue');
+  if (!filtered.length) { queue.innerHTML = '<div class="empty">No pending requests</div>'; return; }
 
-  queue.innerHTML = filtered.map(r => {
-    const partLabel = (r.partNum && r.partName)
-      ? r.partNum + ' — ' + r.partName
-      : (r.text || '');
-    const qtyNeeded = r.qty || 1;
-    const locs      = getLocsForPart(r.partNum);
-    const totalQty  = locs.reduce((s, l) => s + (parseInt(l.quantity) || 0), 0);
+  // Reset pickMap on each render
+  pickMap = {};
+  pickKey = 0;
 
-    const locRows = locs.length
-      ? locs.map((l) => {
-          const lq    = parseInt(l.quantity) || 0;
-          const isLow = lq < qtyNeeded;
-          const key   = pickMapKey++;
-          pickMap[key] = { reqId: r.id, location: l.location };
-          return '<div class="loc-row">' +
-            '<span class="loc-name">📍 ' + esc(l.location) + '</span>' +
-            '<span class="loc-qty ' + (isLow ? 'low' : 'ok') + '">' + (isLow ? '⚠️ ' : '') + lq + ' in stock</span>' +
-            '<button class="pick-btn" onclick="handlePick(' + key + ')">✓ Pick</button>' +
-            '</div>';
-        }).join('')
-      : '<div class="no-loc">No warehouse location found for this part</div>';
+  var html = filtered.map(function(r) {
+    var partLabel = (r.partNum && r.partName) ? r.partNum + ' — ' + r.partName : (r.text || '');
+    var qtyNeeded = r.qty || 1;
+    var locs      = getLocsForPart(r.partNum);
+    var totalQty  = locs.reduce(function(s, l) { return s + (parseInt(l.quantity) || 0); }, 0);
+
+    var locHtml = locs.length ? locs.map(function(l) {
+      var lq    = parseInt(l.quantity) || 0;
+      var isLow = lq < qtyNeeded;
+      var key   = pickKey++;
+      pickMap[key] = { reqId: r.id, location: l.location };
+      return '<div class="loc-row">' +
+        '<span class="loc-name">📍 ' + esc(l.location) + '</span>' +
+        '<span class="loc-qty ' + (isLow ? 'low' : 'ok') + '">' + (isLow ? '⚠️ ' : '') + lq + ' in stock</span>' +
+        '<button class="pick-btn" onclick="handlePick(' + key + ')">✓ Pick</button>' +
+        '</div>';
+    }).join('') : '<div class="no-loc">No warehouse location found</div>';
 
     return '<div class="req-card ' + lineClass(r.line) + '">' +
       '<div class="req-top">' +
@@ -217,9 +199,11 @@ function render() {
         '<span class="meta-val">' + (locs.length ? totalQty : '—') + '</span>' +
         '<span class="qty-badge">Qty needed: ' + qtyNeeded + '</span>' +
       '</div>' +
-      locRows +
+      locHtml +
       '</div>';
   }).join('');
+
+  queue.innerHTML = html;
 }
 
 // ── Clock ─────────────────────────────────────────────────
@@ -227,10 +211,11 @@ function updateClock() {
   document.getElementById('clock').textContent =
     new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
 }
-updateClock(); setInterval(updateClock, 1000);
+updateClock();
+setInterval(updateClock, 1000);
 
 function esc(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
 </body>
