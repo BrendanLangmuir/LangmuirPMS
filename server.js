@@ -195,7 +195,7 @@ async function fetchLocations() {
   } catch(e) { console.error('Locations fetch failed:', e.message); }
 }
 fetchLocations();
-setInterval(fetchLocations, 30 * 60 * 1000); // refresh every 30 min
+setInterval(fetchLocations, 5 * 60 * 1000); // refresh every 5 min
 
 function lookupLocation(partNum, partName) {
   const matches = locationsCache.filter(l =>
@@ -245,6 +245,10 @@ app.get('/api/inventory', async (req, res) => {
 });
 app.get('/api/locations', (req, res) => {
   res.json({ success: true, locations: locationsCache });
+});
+app.get('/api/refresh-locations', async (req, res) => {
+  await fetchLocations();
+  res.json({ success: true, count: locationsCache.length });
 });
 app.get('/api/lines', (req, res) => {
   res.json({ lines: OTHER_LINES });
@@ -409,12 +413,9 @@ wss.on('connection', (ws, req) => {
           }).then(r => r.json())
             .then(d => {
               console.log('Qty subtracted:', d);
-              if (d.success && d.newQty !== undefined) {
-                const loc = locationsCache.find(l =>
-                  l.partNum.toLowerCase() === (req.partNum||'').toLowerCase() &&
-                  l.location === (msg.location || l.location)
-                );
-                if (loc) loc.quantity = String(d.newQty);
+              if (d.success) {
+                // Force refresh cache immediately after subtract
+                fetchLocations();
               }
             })
             .catch(e => console.error('Subtract failed:', e.message));
