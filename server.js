@@ -275,6 +275,9 @@ wss.on('connection', (ws, req) => {
   ws.on('message', raw => {
     let msg; try { msg = JSON.parse(raw); } catch { return; }
 
+    // ── Ping (keepalive) ─────────────────────────────────────
+    if (msg.type === 'ping') { ws.send(JSON.stringify({ type: 'pong' })); return; }
+
     // ── Apollo: Start takt ───────────────────────────────────
     if (msg.type === 'start') {
       if (state.running) return;
