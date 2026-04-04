@@ -173,20 +173,17 @@ function onPartSelected() {
 loadInventory();
 
 function onQtyChange() {
-  qty = Math.max(1, parseInt(document.getElementById('qty-input').value) || 1);
-  document.getElementById('qty-input').value = qty;
-  onPartSelected();
-}
-
-function changeQty(d) {
-  qty = Math.max(1, qty + d);
-  document.getElementById('qty-input').value = qty;
+  const el = document.getElementById('qty-input');
+  const val = parseInt(el.value);
+  qty = (isNaN(val) || val < 1) ? 1 : val;
   onPartSelected();
 }
 
 function sendDropdown() {
   const sel = document.getElementById('inv-select');
   if (!sel.value) return;
+  const qtyEl = document.getElementById('qty-input');
+  qty = Math.max(1, parseInt(qtyEl.value) || 1);
   const [partNum, ...rest] = sel.value.split('|');
   const partName = rest.join('|');
   ws.send(JSON.stringify({ type: 'request', line: lineName, partNum, partName, text: partNum + ' — ' + partName, qty }));
