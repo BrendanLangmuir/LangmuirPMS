@@ -92,7 +92,25 @@
 </div>
 
 <script>
-let requests = [], activeFilter = 'all';
+let locationsData = [];
+
+async function loadLocations() {
+  try {
+    const r = await fetch('/api/locations');
+    const d = await r.json();
+    if (d.success && d.locations) {
+      locationsData = d.locations;
+      render(); // re-render with fresh location data
+    }
+  } catch(e) { console.error('Locations load failed:', e.message); }
+}
+loadLocations();
+setInterval(loadLocations, 60000); // refresh every minute
+
+function getLocationsForPart(partNum) {
+  if (!partNum) return [];
+  return locationsData.filter(l => l.partNum.toLowerCase() === partNum.toLowerCase());
+}
 
 const ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'?picker=1');
 ws.onmessage = e => {
