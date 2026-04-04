@@ -17,7 +17,7 @@
   .station-badge { background: #1f2937; border: 1px solid #374151; border-radius: 4px; padding: 4px 12px; font-size: 12px; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.06em; text-align: right; }
   .station-type-txt { font-size: 9px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 1px; text-align: right; }
 
-  /* ── Break banner ── */
+  .conn-status { display: none; width: 100%; background: #7f1d1d; border-bottom: 2px solid #C8102E; padding: 10px 24px; align-items: center; justify-content: center; gap: 10px; font-size: 13px; font-weight: 700; color: #fca5a5; text-transform: uppercase; letter-spacing: 0.08em; }
   .break-banner { display: none; width: 100%; background: #0c1929; border-bottom: 2px solid #60a5fa; padding: 12px 24px; }
   .break-banner.lunch   { background: #1a1200; border-color: #EF9F27; }
   .break-banner.visible { display: block; }
@@ -107,6 +107,8 @@
   </div>
 </div>
 
+<div class="conn-status" id="conn-status">⚠ Connection lost — reconnecting...</div>
+
 <div class="break-banner" id="break-banner">
   <div class="banner-title" id="banner-title">Morning Break</div>
   <div class="banner-sub">Timer paused — auto-resumes when break ends</div>
@@ -154,12 +156,18 @@
 </div>
 
 <script>
-const params    = new URLSearchParams(location.search);
-const stationId = parseInt(params.get('id') || '1');
-const ws        = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host);
+const ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host);
 let state = null, taktSec = 10800, timerInt = null;
 let holdReasons = ['No operator assigned','No frame/material at station','Secured (end of day)','Waiting for previous station'];
 let allInventory = [];
+let lastPong = Date.now();
+
+ws.onopen  = function() { document.getElementById('conn-status').style.display = 'none'; };
+ws.onclose = function() { document.getElementById('conn-status').style.display = 'flex'; setTimeout(function(){ location.reload(); }, 3000); };
+ws.onerror = function() { document.getElementById('conn-status').style.display = 'flex'; };
+
+setInterval(function() { if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'ping' })); }, 25000);
+setInterval(function() { if (Date.now() - lastPong > 35000) location.reload(); }, 5000);
 
 const BREAK_ENDS = { 'Morning Break':[10,45], 'Lunch':[13,30], 'Afternoon Break':[15,15] };
 
@@ -189,7 +197,11 @@ function applyInventoryToStation() {
 }
 loadInventory();
 
+const params    = new URLSearchParams(location.search);
+const stationId = parseInt(params.get('id') || '1');
+
 ws.onmessage = e => {
+  lastPong = Date.now();
   const msg = JSON.parse(e.data);
   if (msg.type === 'start') { if (!state) return; state.running=true; state.startTime=msg.startTime; state.paused=false; state.pauseLabel=null; state.pauseStart=null; state.totalPausedMs=0; taktSec=msg.taktSeconds; if (msg.holdReasons) holdReasons=msg.holdReasons; state.stations=msg.stations; applyInventoryToStation(); }
   if (msg.type === 'state') { state=msg.state; taktSec=msg.taktSeconds; if (msg.holdReasons) holdReasons=msg.holdReasons; applyInventoryToStation(); }
