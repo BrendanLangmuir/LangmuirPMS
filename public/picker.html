@@ -3,181 +3,146 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Warehouse Picker</title>
+<title>Warehouse</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: #1a1e24;
-    color: #fff;
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    min-height: 100vh;
-  }
+  body { background: #1a1e24; color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
 
   /* ── Header ── */
-  .header {
-    background: #12151a;
-    border-bottom: 3px solid #C8102E;
-    padding: 16px 28px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .brand-icon {
-    width: 36px; height: 36px;
-    background: #C8102E;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 900; font-size: 16px; color: #fff;
-    flex-shrink: 0;
-  }
-  .brand-text { line-height: 1.1; }
-  .brand-text .top { font-size: 11px; font-weight: 600; color: #C8102E; letter-spacing: 0.15em; text-transform: uppercase; }
-  .brand-text .btm { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: 0.06em; text-transform: uppercase; }
-  .header-right { text-align: right; }
-  .clock { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: 0.05em; }
-  .date  { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .header { background: #12151a; border-bottom: 3px solid #C8102E; padding: 0 24px; display: flex; align-items: stretch; justify-content: space-between; min-height: 60px; }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .brand-icon  { width: 36px; height: 36px; background: #C8102E; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; color: #fff; flex-shrink: 0; }
+  .brand-text .top { font-size: 9px; font-weight: 700; color: #C8102E; letter-spacing: 0.15em; text-transform: uppercase; }
+  .brand-text .btm { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: 0.06em; text-transform: uppercase; }
+  .clock { font-size: 15px; font-weight: 700; color: #9ca3af; }
 
-  .conn-status { display: none; width: 100%; background: #7f1d1d; border-bottom: 2px solid #C8102E; padding: 10px 24px; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fca5a5; text-transform: uppercase; letter-spacing: 0.08em; } padding: 28px; }
+  /* ── Connection ── */
+  .conn-status { display: none; width: 100%; background: #7f1d1d; border-bottom: 2px solid #C8102E; padding: 10px 24px; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fca5a5; text-transform: uppercase; letter-spacing: 0.08em; }
 
-  /* ── Summary ── */
-  .summary-bar {
-    background: #12151a;
-    border: 1px solid #2d3340;
-    border-left: 4px solid #C8102E;
-    border-radius: 8px;
-    padding: 16px 24px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 24px;
-  }
-  .summary-label { font-size: 13px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; }
-  .summary-num   { font-size: 36px; font-weight: 900; color: #C8102E; line-height: 1; margin-left: 4px; }
-  .summary-unit  { font-size: 13px; color: #6b7280; margin-left: 4px; }
+  /* ── Tabs ── */
+  .tab-bar { display: flex; background: #12151a; border-bottom: 1px solid #2d3340; }
+  .tab { flex: 1; padding: 14px 8px; font-size: 13px; font-weight: 800; cursor: pointer; color: #6b7280; border: none; background: none; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 3px solid transparent; margin-bottom: -1px; transition: all 0.15s; text-align: center; }
+  .tab.active { color: #fff; border-bottom-color: #C8102E; }
+  .tab:hover:not(.active) { color: #9ca3af; }
 
-  /* ── Filter bar ── */
-  .filter-bar { display: flex; gap: 6px; margin-bottom: 24px; flex-wrap: wrap; }
-  .filter-btn {
-    padding: 7px 18px; border-radius: 4px; font-size: 12px; font-weight: 700;
-    cursor: pointer; border: 1.5px solid #2d3340; background: #12151a;
-    color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em;
-    transition: all 0.15s;
-  }
+  /* ── Page ── */
+  .page { padding: 20px 24px; max-width: 600px; margin: 0 auto; }
+
+  /* ── Summary bar ── */
+  .summary-bar { background: #12151a; border: 1px solid #2d3340; border-left: 4px solid #C8102E; border-radius: 6px; padding: 12px 18px; display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+  .summary-num   { font-size: 32px; font-weight: 900; color: #C8102E; line-height: 1; }
+  .summary-label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; margin-left: 4px; }
+
+  /* ── Filter ── */
+  .filter-bar { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
+  .filter-btn { padding: 6px 14px; border-radius: 4px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1.5px solid #2d3340; background: #12151a; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; transition: all 0.15s; }
   .filter-btn.active { background: #C8102E; border-color: #C8102E; color: #fff; }
   .filter-btn:hover:not(.active) { border-color: #C8102E; color: #fff; }
 
   /* ── Queue ── */
-  .queue { display: flex; flex-direction: column; gap: 12px; }
-  .empty {
-    text-align: center; color: #4b5563; font-size: 15px;
-    padding: 80px 0; text-transform: uppercase; letter-spacing: 0.1em;
-  }
+  .queue { display: flex; flex-direction: column; gap: 10px; }
+  .empty { text-align: center; color: #374151; font-size: 13px; padding: 60px 0; text-transform: uppercase; letter-spacing: 0.1em; }
 
   /* ── Request card ── */
-  .req-card {
-    background: #12151a;
-    border: 1px solid #2d3340;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  .req-card-header {
-    display: flex; align-items: center; gap: 12px;
-    padding: 14px 18px;
-    border-bottom: 1px solid #2d3340;
-  }
-  .line-tag {
-    font-size: 10px; font-weight: 800; letter-spacing: 0.12em;
-    text-transform: uppercase; padding: 3px 10px; border-radius: 3px;
-    flex-shrink: 0;
-  }
+  .req-card { background: #12151a; border: 1px solid #2d3340; border-radius: 8px; overflow: hidden; }
+  .req-card-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #2d3340; flex-wrap: wrap; }
+  .line-tag { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 8px; border-radius: 3px; flex-shrink: 0; }
   .line-tag.apollo { background: #1e3a5f; color: #60a5fa; }
   .line-tag.xf     { background: #2d1b4e; color: #a78bfa; }
   .line-tag.titan  { background: #3d1f00; color: #fb923c; }
   .line-tag.vulcan { background: #3d0a0a; color: #f87171; }
   .line-tag.xr     { background: #1a3d1a; color: #4ade80; }
   .line-tag.mr1    { background: #3d2a00; color: #fbbf24; }
+  .req-station { font-size: 11px; color: #6b7280; }
+  .req-time    { font-size: 10px; color: #374151; margin-left: auto; }
 
-  .req-station { font-size: 12px; color: #6b7280; }
-  .req-time    { font-size: 11px; color: #4b5563; margin-left: auto; }
+  .pri-badge { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .pri-badge.low    { background: #1f2937; color: #6b7280; }
+  .pri-badge.medium { background: #2d1f00; color: #EF9F27; }
+  .pri-badge.high   { background: #2d0808; color: #f87171; animation: flash-red 1s ease-in-out infinite; }
+  @keyframes flash-red { 0%,100%{opacity:1}50%{opacity:0.5} }
 
-  .req-body { padding: 14px 18px; }
-  .req-part    { font-size: 17px; font-weight: 800; color: #fff; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.02em; }
-  .req-partnum { font-size: 12px; color: #C8102E; font-weight: 700; letter-spacing: 0.06em; margin-bottom: 12px; }
-
-  .req-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-  .qty-badge {
-    background: #1f2937; border: 1px solid #374151;
-    color: #d1d5db; font-size: 12px; font-weight: 700;
-    border-radius: 4px; padding: 4px 12px;
-    text-transform: uppercase; letter-spacing: 0.06em;
-  }
-  .total-stock { font-size: 12px; color: #6b7280; }
-  .total-stock span { color: #9ca3af; font-weight: 600; }
+  .req-body    { padding: 12px 14px; }
+  .req-part    { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.02em; }
+  .req-partnum { font-size: 11px; color: #C8102E; font-weight: 700; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .req-meta    { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .qty-badge   { background: #1f2937; border: 1px solid #374151; color: #d1d5db; font-size: 11px; font-weight: 700; border-radius: 3px; padding: 3px 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .stock-info  { font-size: 11px; color: #6b7280; }
+  .stock-info span { color: #9ca3af; font-weight: 600; }
 
   /* ── Location rows ── */
   .loc-section { display: flex; flex-direction: column; gap: 6px; }
-  .loc-row {
-    display: flex; align-items: center; gap: 12px;
-    background: #1f2937; border: 1px solid #374151;
-    border-radius: 6px; padding: 10px 14px;
-  }
-  .loc-code {
-    font-size: 14px; font-weight: 800; color: #fff;
-    letter-spacing: 0.06em; flex: 1;
-    font-family: 'Courier New', monospace;
-  }
-  .loc-qty { font-size: 13px; font-weight: 700; min-width: 80px; text-align: right; }
-  .loc-qty.ok  { color: #4ade80; }
-  .loc-qty.low { color: #f87171; }
-  .pick-btn {
-    background: #C8102E; border: none; border-radius: 4px;
-    color: #fff; font-size: 12px; font-weight: 800;
-    padding: 8px 18px; cursor: pointer; white-space: nowrap;
-    text-transform: uppercase; letter-spacing: 0.08em;
-    transition: background 0.15s;
-  }
-  .pick-btn:hover  { background: #a00d24; }
-  .pick-btn:active { transform: scale(0.97); }
+  .loc-row { background: #1f2937; border: 1px solid #374151; border-radius: 6px; padding: 10px 12px; }
+  .loc-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .loc-code { font-size: 14px; font-weight: 800; color: #fff; flex: 1; font-family: 'Courier New', monospace; letter-spacing: 0.06em; }
+  .loc-qty-txt { font-size: 12px; font-weight: 700; }
+  .loc-qty-txt.ok  { color: #4ade80; }
+  .loc-qty-txt.low { color: #f87171; }
+  .loc-pick-row { display: flex; align-items: center; gap: 8px; }
+  .pick-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; flex: 1; }
+  .adj-btn { width: 32px; height: 32px; border-radius: 4px; border: 1px solid #374151; background: #12151a; color: #fff; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .adj-btn:hover { background: #374151; }
+  .adj-val { font-size: 18px; font-weight: 900; min-width: 28px; text-align: center; }
+  .pick-btn { background: #C8102E; border: none; border-radius: 4px; color: #fff; font-size: 11px; font-weight: 800; padding: 8px 14px; cursor: pointer; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.06em; }
+  .pick-btn:hover { background: #a00d24; }
+  .pick-btn:active { transform: scale(0.96); }
+  .no-loc { font-size: 12px; color: #4b5563; font-style: italic; padding: 6px 0; }
 
-  .no-loc { font-size: 12px; color: #4b5563; font-style: italic; padding: 8px 0; }
+  /* ── Stow form ── */
+  .section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #6b7280; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: #2d3340; }
+  .card { background: #12151a; border: 1px solid #2d3340; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 10px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+  select, input[type="text"], input[type="number"] { width: 100%; background: #1f2937; border: 1.5px solid #374151; border-radius: 6px; color: #fff; font-size: 14px; font-weight: 600; padding: 11px 14px; outline: none; }
+  select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; background-color: #1f2937; }
+  select:focus, input:focus { border-color: #C8102E; }
+  select option { background: #1f2937; }
+  input::placeholder { color: #4b5563; }
+  .qty-row { display: flex; align-items: center; gap: 10px; }
+  .qty-btn { width: 40px; height: 40px; border-radius: 6px; border: 1.5px solid #374151; background: #1f2937; color: #fff; font-size: 20px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .qty-btn:hover { background: #374151; }
+  .qty-input { flex: 1; }
+  .send-btn { width: 100%; padding: 14px; border-radius: 6px; border: none; font-size: 14px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; background: #C8102E; color: #fff; transition: background 0.15s; }
+  .send-btn:hover { background: #a00d24; }
+  .send-btn:active { transform: scale(0.98); }
+  .send-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+  .result-flash { display: none; border-radius: 6px; padding: 12px 16px; margin-bottom: 14px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .result-flash.success { background: #052e16; border: 1px solid #166534; color: #4ade80; }
+  .result-flash.error   { background: #2d0808; border: 1px solid #7f1d1d; color: #f87171; }
+  .recent-item { background: #12151a; border: 1px solid #2d3340; border-left: 3px solid #EF9F27; border-radius: 4px; padding: 10px 14px; margin-bottom: 6px; }
+  .recent-part { font-size: 13px; font-weight: 700; color: #fff; }
+  .recent-meta { font-size: 10px; color: #4b5563; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.06em; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div class="brand">
+  <div class="header-left">
     <div class="brand-icon">L</div>
     <div class="brand-text">
       <div class="top">Langmuir Systems</div>
-      <div class="btm">Warehouse Picker</div>
+      <div class="btm">Warehouse</div>
     </div>
   </div>
-  <div class="header-right">
-    <div class="clock" id="clock"></div>
-    <div class="date"  id="date"></div>
-  </div>
+  <div class="clock" id="clock"></div>
 </div>
 
 <div class="conn-status" id="conn-status">⚠ Connection lost — reconnecting...</div>
 
-<div class="conn-status" id="conn-status">⚠ Connection lost — reconnecting...</div>
+<div class="tab-bar">
+  <button class="tab active" onclick="showTab('pick')" id="tab-pick">📦 Pick Queue</button>
+  <button class="tab"        onclick="showTab('stow')" id="tab-stow">📥 Stow Inventory</button>
+</div>
 
-<div class="page">
-
+<!-- PICK TAB -->
+<div id="view-pick" class="page">
   <div class="summary-bar">
-    <span class="summary-label">Pending Requests</span>
     <span class="summary-num" id="total-count">0</span>
-    <span class="summary-unit">items</span>
+    <span class="summary-label">Pending Requests</span>
   </div>
-
   <div class="filter-bar">
-    <button class="filter-btn active" onclick="setFilter('all')"   id="filter-all">All Lines</button>
+    <button class="filter-btn active" onclick="setFilter('all')"   id="filter-all">All</button>
     <button class="filter-btn" onclick="setFilter('Apollo')"  id="filter-Apollo">Apollo</button>
     <button class="filter-btn" onclick="setFilter('XF/PRO')"  id="filter-XF/PRO">XF/PRO</button>
     <button class="filter-btn" onclick="setFilter('TITAN')"   id="filter-TITAN">Titan</button>
@@ -185,11 +150,38 @@
     <button class="filter-btn" onclick="setFilter('XR')"      id="filter-XR">XR</button>
     <button class="filter-btn" onclick="setFilter('MR1')"     id="filter-MR1">MR1</button>
   </div>
+  <div class="queue" id="queue"><div class="empty">— No Pending Requests —</div></div>
+</div>
 
-  <div class="queue" id="queue">
-    <div class="empty">— No Pending Requests —</div>
+<!-- STOW TAB -->
+<div id="view-stow" class="page" style="display:none">
+  <div class="section-label">Stow a part</div>
+  <div class="card">
+    <div id="result-flash" class="result-flash"></div>
+    <div class="field">
+      <label>Shelf Location</label>
+      <select id="location-sel"><option value="">— Loading locations... —</option></select>
+    </div>
+    <div class="field">
+      <label>Part Number</label>
+      <input type="text" id="part-num" placeholder="e.g. LS-LR-1101" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"/>
+    </div>
+    <div class="field">
+      <label>Description</label>
+      <input type="text" id="part-name" placeholder="e.g. Y-AXIS TUBE" autocomplete="off"/>
+    </div>
+    <div class="field">
+      <label>Quantity</label>
+      <div class="qty-row">
+        <button class="qty-btn" onclick="changeQty(-1)">−</button>
+        <input class="qty-input" type="number" id="qty-stow" inputmode="numeric" min="1" value="1"/>
+        <button class="qty-btn" onclick="changeQty(1)">+</button>
+      </div>
+    </div>
+    <button class="send-btn" id="stow-btn" onclick="stowPart()">📥 Stow Part</button>
   </div>
-
+  <div class="section-label">Recently stowed</div>
+  <div id="recent-list"></div>
 </div>
 
 <script>
@@ -198,67 +190,97 @@ var locationsData = [];
 var activeFilter  = 'all';
 var pickMap       = {};
 var pickKey       = 0;
+var recentStows   = [];
+var lastPong      = Date.now();
 
+// ── WebSocket ─────────────────────────────────────────────
 var ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'?picker=1');
+ws.onopen  = function() { document.getElementById('conn-status').style.display = 'none'; };
+ws.onclose = function() { document.getElementById('conn-status').style.display = 'flex'; setTimeout(function(){ location.reload(); }, 3000); };
+ws.onerror = function() { document.getElementById('conn-status').style.display = 'flex'; };
 ws.onmessage = function(e) {
+  lastPong = Date.now();
   var msg = JSON.parse(e.data);
-  if (msg.type === 'requests')  { requests = msg.requests; render(); }
-  if (msg.type === 'locations') { locationsData = msg.locations; render(); }
+  if (msg.type === 'requests')   { requests = msg.requests; renderQueue(); }
+  if (msg.type === 'locations')  { locationsData = msg.locations; renderQueue(); }
+  if (msg.type === 'stow-result') handleStowResult(msg);
 };
 
+setInterval(function() { if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'ping' })); }, 25000);
+setInterval(function() { if (Date.now() - lastPong > 35000) location.reload(); }, 5000);
+
+// Polling fallback
 setInterval(function() {
-  fetch('/api/requests').then(function(r){return r.json();}).then(function(d){
-    requests = d.requests; render();
-  }).catch(function(){});
+  fetch('/api/requests').then(function(r){return r.json();}).then(function(d){ requests = d.requests; renderQueue(); }).catch(function(){});
 }, 3000);
 
+// ── Load locations ────────────────────────────────────────
 function loadLocations() {
   fetch('/api/locations').then(function(r){return r.json();}).then(function(d){
-    if (d.success && d.locations) { locationsData = d.locations; render(); }
+    if (d.success && d.locations) {
+      locationsData = d.locations;
+      renderQueue();
+      // Populate stow dropdown with unique sorted locations
+      var locs = [];
+      d.locations.forEach(function(l) { if (l.location && locs.indexOf(l.location) === -1) locs.push(l.location); });
+      locs.sort();
+      var sel = document.getElementById('location-sel');
+      sel.innerHTML = '<option value="">— Select a location —</option>' +
+        locs.map(function(l) { return '<option value="' + esc(l) + '">' + esc(l) + '</option>'; }).join('');
+    }
   }).catch(function(){});
 }
 loadLocations();
 setInterval(loadLocations, 30000);
 
-function getLocsForPart(partNum) {
-  if (!partNum) return [];
-  return locationsData.filter(function(l) {
-    return l.partNum.toLowerCase() === partNum.toLowerCase();
-  });
+// ── Tabs ──────────────────────────────────────────────────
+function showTab(tab) {
+  document.getElementById('view-pick').style.display = tab === 'pick' ? 'block' : 'none';
+  document.getElementById('view-stow').style.display = tab === 'stow' ? 'block' : 'none';
+  document.getElementById('tab-pick').className = 'tab' + (tab === 'pick' ? ' active' : '');
+  document.getElementById('tab-stow').className = 'tab' + (tab === 'stow' ? ' active' : '');
 }
 
+// ── Filter ────────────────────────────────────────────────
 function setFilter(f) {
   activeFilter = f;
   document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
   var el = document.getElementById('filter-' + f);
   if (el) el.classList.add('active');
-  render();
+  renderQueue();
+}
+
+// ── Pick helpers ──────────────────────────────────────────
+function getLocsForPart(partNum) {
+  if (!partNum) return [];
+  return locationsData.filter(function(l) { return l.partNum.toLowerCase() === partNum.toLowerCase(); });
+}
+
+function adjQty(key, delta) {
+  var entry = pickMap[key];
+  if (!entry) return;
+  entry.qty = Math.max(1, (entry.qty || 1) + delta);
+  var el = document.getElementById('pick-qty-' + key);
+  if (el) el.textContent = entry.qty;
 }
 
 function handlePick(key) {
   var entry = pickMap[key];
   if (!entry) return;
-  console.log('Picking:', entry.reqId, entry.location);
-  ws.send(JSON.stringify({ type: 'fulfill', reqId: entry.reqId, location: entry.location }));
+  ws.send(JSON.stringify({ type: 'fulfill', reqId: entry.reqId, location: entry.location, qty: entry.qty }));
 }
 
 function lineClass(line) {
-  var map = { 'Apollo':'apollo','APOLLO':'apollo','XF/PRO':'xf','TITAN':'titan','VULCAN':'vulcan','XR':'xr','MR1':'mr1' };
+  var map = {'Apollo':'apollo','APOLLO':'apollo','XF/PRO':'xf','TITAN':'titan','VULCAN':'vulcan','XR':'xr','MR1':'mr1'};
   return map[line] || 'apollo';
 }
 
-function render() {
-  var filtered = activeFilter === 'all'
-    ? requests
-    : requests.filter(function(r){ return r.line === activeFilter; });
-
+// ── Render queue ──────────────────────────────────────────
+function renderQueue() {
+  var filtered = activeFilter === 'all' ? requests : requests.filter(function(r){ return r.line === activeFilter; });
   document.getElementById('total-count').textContent = requests.length;
-
   var queue = document.getElementById('queue');
-  if (!filtered.length) {
-    queue.innerHTML = '<div class="empty">— No Pending Requests —</div>';
-    return;
-  }
+  if (!filtered.length) { queue.innerHTML = '<div class="empty">— No Pending Requests —</div>'; return; }
 
   pickMap = {}; pickKey = 0;
 
@@ -267,16 +289,25 @@ function render() {
     var qtyNeeded = r.qty || 1;
     var locs      = getLocsForPart(r.partNum);
     var totalQty  = locs.reduce(function(s,l){ return s + (parseInt(l.quantity)||0); }, 0);
+    var pri       = r.priority || 'low';
 
     var locHtml = locs.length ? locs.map(function(l) {
       var lq    = parseInt(l.quantity) || 0;
       var isLow = lq < qtyNeeded;
       var key   = pickKey++;
-      pickMap[key] = { reqId: r.id, location: l.location };
+      pickMap[key] = { reqId: r.id, location: l.location, qty: qtyNeeded };
       return '<div class="loc-row">' +
-        '<span class="loc-code">' + esc(l.location) + '</span>' +
-        '<span class="loc-qty ' + (isLow?'low':'ok') + '">' + (isLow?'⚠️ ':'') + lq + ' in stock</span>' +
-        '<button class="pick-btn" onclick="handlePick(' + key + ')">✓ Pick</button>' +
+        '<div class="loc-top">' +
+          '<span class="loc-code">' + esc(l.location) + '</span>' +
+          '<span class="loc-qty-txt ' + (isLow?'low':'ok') + '">' + (isLow?'⚠️ ':'') + lq + ' in stock</span>' +
+        '</div>' +
+        '<div class="loc-pick-row">' +
+          '<span class="pick-label">Picking:</span>' +
+          '<button class="adj-btn" onclick="adjQty(' + key + ',-1)">−</button>' +
+          '<span class="adj-val" id="pick-qty-' + key + '">' + qtyNeeded + '</span>' +
+          '<button class="adj-btn" onclick="adjQty(' + key + ',1)">+</button>' +
+          '<button class="pick-btn" onclick="handlePick(' + key + ')">✓ Picked</button>' +
+        '</div>' +
         '</div>';
     }).join('') : '<div class="no-loc">No warehouse location on file</div>';
 
@@ -284,6 +315,7 @@ function render() {
       '<div class="req-card-header">' +
         '<span class="line-tag ' + lineClass(r.line) + '">' + esc(r.line) + '</span>' +
         (r.station ? '<span class="req-station">' + esc(r.station) + '</span>' : '') +
+        '<span class="pri-badge ' + pri + '">' + pri + '</span>' +
         '<span class="req-time">' + r.time + '</span>' +
       '</div>' +
       '<div class="req-body">' +
@@ -291,7 +323,7 @@ function render() {
         (r.partNum ? '<div class="req-partnum">' + esc(r.partNum) + '</div>' : '') +
         '<div class="req-meta">' +
           '<span class="qty-badge">Qty needed: ' + qtyNeeded + '</span>' +
-          (locs.length ? '<span class="total-stock">Total stock: <span>' + totalQty + '</span></span>' : '') +
+          (locs.length ? '<span class="stock-info">Total stock: <span>' + totalQty + '</span></span>' : '') +
         '</div>' +
         '<div class="loc-section">' + locHtml + '</div>' +
       '</div>' +
@@ -301,12 +333,75 @@ function render() {
   queue.innerHTML = html;
 }
 
+// ── Stow ──────────────────────────────────────────────────
+function changeQty(delta) {
+  var el  = document.getElementById('qty-stow');
+  el.value = Math.max(1, (parseInt(el.value) || 1) + delta);
+}
+
+function stowPart() {
+  var location = document.getElementById('location-sel').value.trim();
+  var partNum  = document.getElementById('part-num').value.trim().toUpperCase();
+  var partName = document.getElementById('part-name').value.trim().toUpperCase();
+  var qty      = Math.max(1, parseInt(document.getElementById('qty-stow').value) || 1);
+
+  if (!location) { showResult(false, 'Please select a location'); return; }
+  if (!partNum)  { showResult(false, 'Please enter a part number'); return; }
+  if (!partName) { showResult(false, 'Please enter a description'); return; }
+
+  var btn = document.getElementById('stow-btn');
+  btn.disabled = true; btn.textContent = 'Stowing...';
+
+  ws.send(JSON.stringify({ type: 'stow', location, partNum, partName, qty }));
+
+  setTimeout(function() {
+    if (btn.disabled) { btn.disabled = false; btn.textContent = '📥 Stow Part'; showResult(false, 'No response — check connection'); }
+  }, 8000);
+}
+
+function handleStowResult(msg) {
+  var btn = document.getElementById('stow-btn');
+  btn.disabled = false; btn.textContent = '📥 Stow Part';
+  if (msg.success) {
+    var location = document.getElementById('location-sel').value;
+    var partNum  = document.getElementById('part-num').value.trim().toUpperCase();
+    var partName = document.getElementById('part-name').value.trim().toUpperCase();
+    var qty      = parseInt(document.getElementById('qty-stow').value) || 1;
+    showResult(true, msg.message || 'Stowed successfully');
+    recentStows.unshift({ location, partNum, partName, qty, time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) });
+    if (recentStows.length > 10) recentStows.pop();
+    renderRecent();
+    document.getElementById('part-num').value  = '';
+    document.getElementById('part-name').value = '';
+    document.getElementById('qty-stow').value  = '1';
+    document.getElementById('location-sel').value = '';
+    loadLocations();
+  } else {
+    showResult(false, msg.message || 'Stow failed');
+  }
+}
+
+function showResult(success, message) {
+  var el = document.getElementById('result-flash');
+  el.className   = 'result-flash ' + (success ? 'success' : 'error');
+  el.textContent = (success ? '✓ ' : '✗ ') + message;
+  el.style.display = 'block';
+  setTimeout(function() { el.style.display = 'none'; }, 4000);
+}
+
+function renderRecent() {
+  var el = document.getElementById('recent-list');
+  if (!recentStows.length) { el.innerHTML = ''; return; }
+  el.innerHTML = recentStows.map(function(s) {
+    return '<div class="recent-item"><div class="recent-part">' + esc(s.partNum) + ' — ' + esc(s.partName) + '</div>' +
+      '<div class="recent-meta">' + esc(s.location) + ' · Qty: ' + s.qty + ' · ' + s.time + '</div></div>';
+  }).join('');
+}
+
+// ── Clock ─────────────────────────────────────────────────
 function updateClock() {
-  var now = new Date();
   document.getElementById('clock').textContent =
-    now.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  document.getElementById('date').textContent =
-    now.toLocaleDateString('en-US', {weekday:'long',month:'long',day:'numeric'});
+    new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 updateClock(); setInterval(updateClock, 1000);
 
