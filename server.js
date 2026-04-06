@@ -402,6 +402,7 @@ wss.on('connection', (ws, req) => {
       if (req) {        req.fulfilled = true;
         // Subtract quantity from sheet
         if (LOCATIONS_URL && (req.partNum || req.partName)) {
+          const actualQty = msg.qty || req.qty || 1;
           fetch(LOCATIONS_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -410,7 +411,7 @@ wss.on('connection', (ws, req) => {
               partNum:  req.partNum  || '',
               partName: req.partName || '',
               location: msg.location || '',
-              qty:      req.qty      || 1,
+              qty:      actualQty,
             }),
             redirect: 'follow',
           }).then(r => r.json())
