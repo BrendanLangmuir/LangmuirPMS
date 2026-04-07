@@ -255,7 +255,7 @@ app.get('/api/requests', (req, res) => {
 });
 app.get('/api/inventory', (req, res) => {
   if (inventoryCache) return res.json(inventoryCache);
-  res.json({ success: false, error: 'Inventory not yet loaded' });
+  res.json({ success: false, error: 'Inventory not yet loaded — please wait a moment and refresh' });
 });
 app.get('/api/locations', (req, res) => {
   res.json({ success: true, locations: locationsCache });
@@ -419,7 +419,7 @@ wss.on('connection', (ws, req) => {
       console.log('Fulfill received:', { reqId: msg.reqId, location: msg.location, partNum: req?.partNum, qty: msg.qty });
       if (req) {
         req.fulfilled = true;
-        if (LOCATIONS_URL && (req.partNum || req.partName)) {
+        if (LOCATIONS_URL && (req.partNum || req.partName) && actualQty > 0) {
           const actualQty = msg.qty || req.qty || 1;
           fetch(LOCATIONS_URL, {
             method: 'POST',
