@@ -186,9 +186,9 @@ let inventoryCache = null;
 let inventoryCacheTime = 0;
 
 async function fetchInventory() {
-  if (!SHEETS_URL) return;
+  if (!LOCATIONS_URL) return;
   try {
-    const r = await fetch(SHEETS_URL, { redirect: 'follow' });
+    const r = await fetch(LOCATIONS_URL, { redirect: 'follow' });
     const d = await r.json();
     if (d.success) {
       inventoryCache     = d;
