@@ -160,28 +160,19 @@ function loadInventory() {
     window._locations    = d.locations || [];
     window._rawInventory = d.inventory || {};
     var inv = d.inventory || {};
-
-    // For Apollo — combine all station groups into one list
-    // For other lines — use the line name directly
-    var apolloStations = ['Framing','Machining','Lower Assembly','Cut Bed','Gantry and Z-Axis',
-      'Laser and Wiring','Skirting','Testing','Uprights and Z/X Axis','Electrical Box','Kitting'];
-
-    if (lineName === 'Apollo' || lineName === 'APOLLO') {
-      var seen = {};
-      allItems = [];
-      apolloStations.forEach(function(st) {
-        (inv[st] || []).forEach(function(i) {
-          var pn = String(i.partNum||'').toLowerCase();
-          if (!seen[pn]) { seen[pn] = true; allItems.push(i); }
-        });
-      });
-      // Sort alphabetically
-      allItems.sort(function(a,b){ return String(a.partNum||'').localeCompare(String(b.partNum||''), undefined, {numeric:true, sensitivity:'base'}); });
-    } else {
-      allItems = inv[lineName] || [];
-    }
+    // Look up by line name — try exact match first, then uppercase
+    var key = inv[lineName] ? lineName : (inv[lineName.toUpperCase()] ? lineName.toUpperCase() : null);
+    allItems = key ? inv[key] : [];
     document.getElementById('inv-loading').style.display = 'none';
     document.getElementById('inv-form').style.display    = '';
+    // Attach priority listeners now that form is visible
+    ['low','medium','high'].forEach(function(lvl) {
+      var btn = document.getElementById('pri-'+lvl);
+      if (btn) {
+        btn.onclick = null;
+        btn.addEventListener('click', function() { setPri(lvl); });
+      }
+    });
     renderParts('');
   }).catch(function(e){
     document.getElementById('inv-loading').textContent = 'Failed: '+e.message;
@@ -227,11 +218,6 @@ document.getElementById('part-search').addEventListener('input', function() {
 });
 
 // Priority
-['low','medium','high'].forEach(function(lvl) {
-  var btn = document.getElementById('pri-'+lvl);
-  if (btn) btn.addEventListener('click', function() { setPri(lvl); });
-});
-
 function setPri(p) {
   priority = p;
   ['low','medium','high'].forEach(function(lvl){
