@@ -95,9 +95,9 @@ input::placeholder { color: #4b5563; }
       </div>
       <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#6b7280;margin-bottom:8px;">Priority</div>
       <div class="pri-row">
-        <button class="pri-btn sel-low"    id="pri-low"    onclick="setPri('low')">Low</button>
-        <button class="pri-btn"            id="pri-medium" onclick="setPri('medium')">Medium</button>
-        <button class="pri-btn"            id="pri-high"   onclick="setPri('high')">High</button>
+        <button class="pri-btn sel-low"    id="pri-low">Low</button>
+        <button class="pri-btn"            id="pri-medium">Medium</button>
+        <button class="pri-btn"            id="pri-high">High</button>
       </div>
       <div class="sent-flash" id="sent-flash">Request Sent!</div>
       <button class="btn btn-red" id="send-btn">Send Request</button>
@@ -159,7 +159,27 @@ function loadInventory() {
     if (!d.success) { document.getElementById('inv-loading').textContent = 'Error: '+(d.error||'unknown'); return; }
     window._locations    = d.locations || [];
     window._rawInventory = d.inventory || {};
-    allItems = (d.inventory || {})[lineName] || [];
+    var inv = d.inventory || {};
+
+    // For Apollo — combine all station groups into one list
+    // For other lines — use the line name directly
+    var apolloStations = ['Framing','Machining','Lower Assembly','Cut Bed','Gantry and Z-Axis',
+      'Laser and Wiring','Skirting','Testing','Uprights and Z/X Axis','Electrical Box','Kitting'];
+
+    if (lineName === 'Apollo' || lineName === 'APOLLO') {
+      var seen = {};
+      allItems = [];
+      apolloStations.forEach(function(st) {
+        (inv[st] || []).forEach(function(i) {
+          var pn = String(i.partNum||'').toLowerCase();
+          if (!seen[pn]) { seen[pn] = true; allItems.push(i); }
+        });
+      });
+      // Sort alphabetically
+      allItems.sort(function(a,b){ return String(a.partNum||'').localeCompare(String(b.partNum||''), undefined, {numeric:true, sensitivity:'base'}); });
+    } else {
+      allItems = inv[lineName] || [];
+    }
     document.getElementById('inv-loading').style.display = 'none';
     document.getElementById('inv-form').style.display    = '';
     renderParts('');
@@ -207,9 +227,13 @@ document.getElementById('part-search').addEventListener('input', function() {
 });
 
 // Priority
+['low','medium','high'].forEach(function(lvl) {
+  var btn = document.getElementById('pri-'+lvl);
+  if (btn) btn.addEventListener('click', function() { setPri(lvl); });
+});
+
 function setPri(p) {
   priority = p;
-  console.log('Priority set to:', priority);
   ['low','medium','high'].forEach(function(lvl){
     var btn = document.getElementById('pri-'+lvl);
     if (btn) btn.className = 'pri-btn' + (lvl===p ? ' sel-'+lvl : '');
