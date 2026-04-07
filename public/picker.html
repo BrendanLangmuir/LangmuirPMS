@@ -192,6 +192,7 @@ var pickMap       = {};
 var pickKey       = 0;
 var recentStows   = [];
 var lastPong      = Date.now();
+var adjustedQtys  = {}; // reqId+location → adjusted qty, persists across renders
 
 // ── WebSocket ─────────────────────────────────────────────
 var ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'?picker=1');
@@ -260,6 +261,8 @@ function adjQty(key, delta) {
   var entry = pickMap[key];
   if (!entry) return;
   entry.qty = Math.max(1, (entry.qty || 1) + delta);
+  // Persist so re-renders don't reset it
+  adjustedQtys[entry.reqId + '|' + entry.location] = entry.qty;
   var el = document.getElementById('pick-qty-' + key);
   if (el) el.textContent = entry.qty;
 }
@@ -291,11 +294,14 @@ function renderQueue() {
     var totalQty  = locs.reduce(function(s,l){ return s + (parseInt(l.quantity)||0); }, 0);
     var pri       = r.priority || 'low';
 
-    var locHtml = locs.length ? locs.map(function(l) {
-      var lq    = parseInt(l.quantity) || 0;
-      var isLow = lq < qtyNeeded;
-      var key   = pickKey++;
-      pickMap[key] = { reqId: r.id, location: l.location, qty: qtyNeeded };
+          var locHtml = locs.length ? locs.map(function(l) {
+      var lq       = parseInt(l.quantity) || 0;
+      var isLow    = lq < qtyNeeded;
+      var key      = pickKey++;
+      // Use persisted adjusted qty if available, otherwise default to qtyNeeded
+      var adjKey   = r.id + '|' + l.location;
+      var initQty  = adjustedQtys[adjKey] !== undefined ? adjustedQtys[adjKey] : qtyNeeded;
+      pickMap[key] = { reqId: r.id, location: l.location, qty: initQty };
       return '<div class="loc-row">' +
         '<div class="loc-top">' +
           '<span class="loc-code">' + esc(l.location) + '</span>' +
@@ -304,7 +310,7 @@ function renderQueue() {
         '<div class="loc-pick-row">' +
           '<span class="pick-label">Picking:</span>' +
           '<button class="adj-btn" onclick="adjQty(' + key + ',-1)">−</button>' +
-          '<span class="adj-val" id="pick-qty-' + key + '">' + qtyNeeded + '</span>' +
+          '<span class="adj-val" id="pick-qty-' + key + '">' + initQty + '</span>' +
           '<button class="adj-btn" onclick="adjQty(' + key + ',1)">+</button>' +
           '<button class="pick-btn" onclick="handlePick(' + key + ')">✓ Picked</button>' +
         '</div>' +
