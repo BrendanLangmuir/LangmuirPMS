@@ -376,6 +376,7 @@ wss.on('connection', (ws, req) => {
 
     // ── Inventory request (Apollo worker or line page) ───────
     if (msg.type === 'request') {
+      console.log('Request received:', msg.line, msg.partNum||msg.text, 'priority:', msg.priority);
       const stName   = msg.station || null;
       const loc      = lookupLocation(msg.partNum || '', msg.partName || '');
       const req = {
