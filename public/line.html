@@ -275,9 +275,12 @@ async function loadInventory() {
   try {
     const r = await fetch('/api/inventory');
     const d = await r.json();
+    console.log('Inventory response:', d.success, Object.keys(d.inventory || {}));
     if (d.success && d.inventory) {
       const items = d.inventory[lineName] || [];
+      console.log('Items for', lineName, ':', items.length);
       if (d.locations) window._locations = d.locations;
+      window._rawInventory = d.inventory;
       const sel = document.getElementById('inv-select');
       if (items.length) {
         sel.innerHTML = '<option value="">— Select a part —</option>' +
@@ -286,13 +289,15 @@ async function loadInventory() {
         document.getElementById('inv-loading').style.display = 'none';
         document.getElementById('inv-form').style.display    = '';
       } else {
-        document.getElementById('inv-loading').textContent = 'No parts listed for this line';
+        document.getElementById('inv-loading').textContent = 'No parts listed for: ' + lineName;
         document.getElementById('inv-form').style.display  = '';
       }
+    } else {
+      document.getElementById('inv-loading').textContent = 'Error: ' + (d.error || 'unknown');
     }
   } catch(e) {
-    document.getElementById('inv-loading').textContent = 'Could not load inventory';
-    document.getElementById('inv-form').style.display  = '';
+    console.error('Inventory fetch error:', e);
+    document.getElementById('inv-loading').textContent = 'Could not load inventory: ' + e.message;
   }
 }
 loadInventory();
