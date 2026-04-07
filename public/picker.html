@@ -107,7 +107,19 @@
   .send-btn:hover { background: #a00d24; }
   .send-btn:active { transform: scale(0.98); }
   .send-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
-  .result-flash { display: none; border-radius: 6px; padding: 12px 16px; margin-bottom: 14px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .stow-search-wrap { position: relative; margin-bottom: 8px; }
+  .stow-results { background: #1f2937; border: 1.5px solid #374151; border-radius: 6px; max-height: 200px; overflow-y: auto; margin-bottom: 10px; display: none; }
+  .stow-result-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #2d3340; }
+  .stow-result-item:last-child { border-bottom: none; }
+  .stow-result-item:hover { background: #374151; }
+  .stow-result-pn { font-size: 12px; font-weight: 800; color: #C8102E; letter-spacing: 0.06em; }
+  .stow-result-pa { font-size: 13px; color: #d1d5db; margin-top: 2px; }
+  .stow-selected { background: #12151a; border: 1.5px solid #C8102E; border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; display: none; }
+  .stow-selected-lbl { font-size: 9px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+  .stow-selected-pn  { font-size: 12px; font-weight: 800; color: #C8102E; letter-spacing: 0.06em; }
+  .stow-selected-pa  { font-size: 13px; color: #fff; margin-top: 2px; }
+  .stow-clear { float: right; background: none; border: none; color: #6b7280; cursor: pointer; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+  .stow-clear:hover { color: #f87171; }
   .result-flash.success { background: #052e16; border: 1px solid #166534; color: #4ade80; }
   .result-flash.error   { background: #2d0808; border: 1px solid #7f1d1d; color: #f87171; }
   .recent-item { background: #12151a; border: 1px solid #2d3340; border-left: 3px solid #EF9F27; border-radius: 4px; padding: 10px 14px; margin-bottom: 6px; }
@@ -158,18 +170,25 @@
   <div class="section-label">Stow a part</div>
   <div class="card">
     <div id="result-flash" class="result-flash"></div>
+
+    <div class="field">
+      <label>Search Part Number or Description</label>
+      <div class="stow-search-wrap">
+        <input type="text" id="stow-search" placeholder="Type part # or description..." autocomplete="off" autocorrect="off" spellcheck="false"/>
+      </div>
+      <div class="stow-results" id="stow-results"></div>
+      <div class="stow-selected" id="stow-selected">
+        <div class="stow-selected-lbl">Selected Part <button class="stow-clear" onclick="clearStowPart()">✕ Clear</button></div>
+        <div class="stow-selected-pn" id="stow-sel-pn"></div>
+        <div class="stow-selected-pa" id="stow-sel-pa"></div>
+      </div>
+    </div>
+
     <div class="field">
       <label>Shelf Location <span style="font-weight:400;color:#4b5563;text-transform:none;letter-spacing:0;">(e.g. 01-A1-A)</span></label>
       <input type="text" id="location-sel" placeholder="e.g. 01-A1-A" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"/>
     </div>
-    <div class="field">
-      <label>Part Number</label>
-      <input type="text" id="part-num" placeholder="e.g. LS-LR-1101" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"/>
-    </div>
-    <div class="field">
-      <label>Description</label>
-      <input type="text" id="part-name" placeholder="e.g. Y-AXIS TUBE" autocomplete="off"/>
-    </div>
+
     <div class="field">
       <label>Quantity</label>
       <div class="qty-row">
@@ -331,26 +350,88 @@ function renderQueue() {
   queue.innerHTML = html;
 }
 
+// ── BOM search for stow ───────────────────────────────────
+var allBomParts  = [];
+var stowSelected = null;
+
+function loadBom() {
+  fetch('/api/inventory').then(function(r){ return r.json(); }).then(function(d) {
+    if (!d.success || !d.inventory) return;
+    var seen = {};
+    allBomParts = [];
+    Object.values(d.inventory).forEach(function(group) {
+      group.forEach(function(item) {
+        var pn = String(item.partNum || '').trim();
+        if (pn && !seen[pn.toLowerCase()]) {
+          seen[pn.toLowerCase()] = true;
+          allBomParts.push({ partNum: pn, partName: String(item.partName || '') });
+        }
+      });
+    });
+    allBomParts.sort(function(a,b){ return a.partNum.localeCompare(b.partNum, undefined, {numeric:true, sensitivity:'base'}); });
+  }).catch(function(){});
+}
+loadBom();
+
+document.getElementById('stow-search').addEventListener('input', function() {
+  var q = this.value.trim().toLowerCase();
+  var resultsEl = document.getElementById('stow-results');
+  if (!q) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; return; }
+  var filtered = allBomParts.filter(function(i) {
+    return i.partNum.toLowerCase().includes(q) || i.partName.toLowerCase().includes(q);
+  }).slice(0, 20);
+  if (!filtered.length) {
+    resultsEl.style.display = 'block';
+    resultsEl.innerHTML = '<div style="padding:12px 14px;font-size:12px;color:#4b5563;text-align:center;">No parts found</div>';
+    return;
+  }
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = filtered.map(function(i) {
+    return '<div class="stow-result-item" onclick="selectStowPart(\'' + esc(i.partNum) + '\',\'' + esc(i.partName) + '\')">' +
+      '<div class="stow-result-pn">' + esc(i.partNum) + '</div>' +
+      '<div class="stow-result-pa">' + esc(i.partName) + '</div>' +
+      '</div>';
+  }).join('');
+});
+
+function selectStowPart(pn, pa) {
+  stowSelected = { partNum: pn, partName: pa };
+  document.getElementById('stow-search').value = '';
+  document.getElementById('stow-results').style.display = 'none';
+  document.getElementById('stow-selected').style.display = 'block';
+  document.getElementById('stow-sel-pn').textContent = pn;
+  document.getElementById('stow-sel-pa').textContent = pa;
+}
+
+function clearStowPart() {
+  stowSelected = null;
+  document.getElementById('stow-selected').style.display = 'none';
+  document.getElementById('stow-search').value = '';
+}
+
 // ── Stow ──────────────────────────────────────────────────
 function changeQty(delta) {
-  var el  = document.getElementById('qty-stow');
+  var el = document.getElementById('qty-stow');
   el.value = Math.max(1, (parseInt(el.value) || 1) + delta);
 }
 
 function stowPart() {
   var location = document.getElementById('location-sel').value.trim().toUpperCase();
-  var partNum  = document.getElementById('part-num').value.trim().toUpperCase();
-  var partName = document.getElementById('part-name').value.trim().toUpperCase();
   var qty      = Math.max(1, parseInt(document.getElementById('qty-stow').value) || 1);
 
-  if (!location) { showResult(false, 'Please select a location'); return; }
-  if (!partNum)  { showResult(false, 'Please enter a part number'); return; }
-  if (!partName) { showResult(false, 'Please enter a description'); return; }
+  if (!stowSelected) { showResult(false, 'Please search and select a part'); return; }
+  if (!location)     { showResult(false, 'Please enter a shelf location'); return; }
 
   var btn = document.getElementById('stow-btn');
   btn.disabled = true; btn.textContent = 'Stowing...';
 
-  ws.send(JSON.stringify({ type: 'stow', location, partNum, partName, qty }));
+  ws.send(JSON.stringify({
+    type:     'stow',
+    location: location,
+    partNum:  stowSelected.partNum,
+    partName: stowSelected.partName,
+    qty:      qty,
+  }));
 
   setTimeout(function() {
     if (btn.disabled) { btn.disabled = false; btn.textContent = '📥 Stow Part'; showResult(false, 'No response — check connection'); }
@@ -362,17 +443,16 @@ function handleStowResult(msg) {
   btn.disabled = false; btn.textContent = '📥 Stow Part';
   if (msg.success) {
     var location = document.getElementById('location-sel').value;
-    var partNum  = document.getElementById('part-num').value.trim().toUpperCase();
-    var partName = document.getElementById('part-name').value.trim().toUpperCase();
+    var partNum  = stowSelected ? stowSelected.partNum  : '';
+    var partName = stowSelected ? stowSelected.partName : '';
     var qty      = parseInt(document.getElementById('qty-stow').value) || 1;
     showResult(true, msg.message || 'Stowed successfully');
     recentStows.unshift({ location, partNum, partName, qty, time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) });
     if (recentStows.length > 10) recentStows.pop();
     renderRecent();
-    document.getElementById('part-num').value  = '';
-    document.getElementById('part-name').value = '';
-    document.getElementById('qty-stow').value  = '1';
+    clearStowPart();
     document.getElementById('location-sel').value = '';
+    document.getElementById('qty-stow').value = '1';
     loadLocations();
   } else {
     showResult(false, msg.message || 'Stow failed');
