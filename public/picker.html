@@ -260,11 +260,13 @@ function getLocsForPart(partNum) {
 function adjQty(key, delta) {
   var entry = pickMap[key];
   if (!entry) return;
-  entry.qty = Math.max(1, (entry.qty || 1) + delta);
-  // Persist so re-renders don't reset it
+  entry.qty = Math.max(0, (entry.qty || 1) + delta); // allow 0 to cancel
   adjustedQtys[entry.reqId + '|' + entry.location] = entry.qty;
   var el = document.getElementById('pick-qty-' + key);
-  if (el) el.textContent = entry.qty;
+  if (el) {
+    el.textContent = entry.qty === 0 ? 'Cancel' : entry.qty;
+    el.style.color = entry.qty === 0 ? '#f87171' : '#fff';
+  }
 }
 
 function handlePick(key) {
@@ -312,7 +314,7 @@ function renderQueue() {
           '<button class="adj-btn" onclick="adjQty(' + key + ',-1)">−</button>' +
           '<span class="adj-val" id="pick-qty-' + key + '">' + initQty + '</span>' +
           '<button class="adj-btn" onclick="adjQty(' + key + ',1)">+</button>' +
-          '<button class="pick-btn" onclick="handlePick(' + key + ')">✓ Picked</button>' +
+          '<button class="pick-btn" onclick="handlePick(' + key + ')" style="' + (initQty===0?'background:#374151;':'') + '">✓ ' + (initQty===0?'Cancel':'Picked') + '</button>' +
         '</div>' +
         '</div>';
     }).join('') : '<div class="no-loc">No warehouse location on file</div>';
