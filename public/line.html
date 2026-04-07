@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -146,7 +146,11 @@ function loadInventory() {
     document.getElementById('inv-form').style.display    = '';
     if (items.length) {
       sel.innerHTML = '<option value="">— Select a part —</option>' +
-        items.map(function(i){ return '<option value="'+esc(i.partNum+'|'+i.partName)+'">'+esc(i.partNum)+' — '+esc(i.partName)+'</option>'; }).join('');
+        items.map(function(i){
+          var pn = String(i.partNum || '');
+          var pa = String(i.partName || '');
+          return '<option value="'+esc(pn+'|'+pa)+'">'+esc(pn)+' — '+esc(pa)+'</option>';
+        }).join('');
     } else {
       sel.innerHTML = '<option value="">No parts listed for '+esc(lineName)+'</option>';
     }
@@ -174,7 +178,7 @@ function showStock() {
   if (!sel.value) { sEl.style.display='none'; return; }
   var pn    = sel.value.split('|')[0];
   var qty   = Math.max(1, parseInt(document.getElementById('qty-input').value)||1);
-  var locs  = (window._locations||[]).filter(function(l){ return l.partNum.toLowerCase()===pn.toLowerCase(); });
+  var locs  = (window._locations||[]).filter(function(l){ return String(l.partNum||'').toLowerCase()===pn.toLowerCase(); });
   if (locs.length) {
     var total = locs.reduce(function(s,l){ return s+(parseInt(l.quantity)||0); }, 0);
     var isLow = total < qty;
