@@ -195,7 +195,7 @@ async function fetchLocations() {
 fetchLocations();
 setInterval(fetchLocations, 5 * 60 * 1000);
 
-// ── Inventory cache (locations + inventory + bomList) ────────
+// ── Inventory cache ──────────────────────────────────────────
 let inventoryCache = null;
 async function fetchInventory() {
   if (!LOCATIONS_URL) return;
@@ -441,6 +441,9 @@ wss.on('connection', (ws, req) => {
               partName: req.partName || '',
               location: msg.location || '',
               qty:      actualQty,
+              // ── Transaction context ──────────────────────
+              line:     req.line    || '',
+              station:  req.station || '',
             }),
             redirect: 'follow',
           }).then(r => r.json())
@@ -480,6 +483,9 @@ wss.on('connection', (ws, req) => {
           partNum:  msg.partNum  || '',
           partName: msg.partName || '',
           qty:      msg.qty      || 1,
+          // ── Transaction context ──────────────────────────
+          line:     msg.line    || '',
+          station:  msg.station || '',
         }),
         redirect: 'follow',
       }).then(r => r.json())
