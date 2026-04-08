@@ -405,7 +405,7 @@ document.getElementById('stow-search').addEventListener('input', function() {
   var q = this.value.trim().toLowerCase();
   var resultsEl = document.getElementById('stow-results');
   if (!q) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; return; }
-  var filtered = allBomParts.filter(function(i) {
+  var filtered = allStowParts.filter(function(i) {
     return i.partNum.toLowerCase().includes(q) || i.partName.toLowerCase().includes(q);
   }).slice(0, 20);
   if (!filtered.length) {
