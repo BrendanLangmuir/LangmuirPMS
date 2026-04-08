@@ -35,6 +35,7 @@ const HOLD_REASONS = [
   'Waiting for previous station',
 ];
 
+const ALL_LINES = ['Apollo', 'XF/PRO', 'TITAN', 'VULCAN', 'XR', 'MR1'];
 const OTHER_LINES = ['XF/PRO', 'TITAN', 'VULCAN', 'XR', 'MR1'];
 
 const SCHEDULED_BREAKS = [
@@ -195,16 +196,22 @@ async function fetchLocations() {
 fetchLocations();
 setInterval(fetchLocations, 5 * 60 * 1000);
 
-// ── Inventory cache ──────────────────────────────────────────
-let inventoryCache = null;
+// ── Inventory + orphan cache ─────────────────────────────────
+let inventoryCache     = null;
+let orphanPartsCache   = [];
+let orphanAssignCache  = {};  // partNum.lower → { line, station }
+
 async function fetchInventory() {
   if (!LOCATIONS_URL) return;
   try {
     const r = await fetch(LOCATIONS_URL, { redirect: 'follow' });
     const d = await r.json();
     if (d.success) {
-      inventoryCache = d;
-      console.log('Inventory cached:', Object.keys(d.inventory || {}).length, 'groups,', (d.bomList || []).length, 'BOM parts');
+      inventoryCache    = d;
+      orphanPartsCache  = d.orphanParts      || [];
+      orphanAssignCache = d.orphanAssignments || {};
+      console.log('Inventory cached:', Object.keys(d.inventory || {}).length, 'groups,',
+        (d.bomList || []).length, 'BOM parts,', orphanPartsCache.length, 'orphans');
     }
   } catch(e) { console.error('Inventory cache failed:', e.message); }
 }
@@ -243,6 +250,25 @@ async function postToSheets(payload) {
   } catch(e) { console.error('Sheets post failed:', e.message); }
 }
 
+// ── Orphan assignment post to Apps Script ────────────────────
+async function postOrphanAssignment(partNum, partName, line, station) {
+  if (!LOCATIONS_URL) return { success: false, error: 'No LOCATIONS_URL' };
+  try {
+    const res = await fetch(LOCATIONS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'assignOrphan', partNum, partName, line, station }),
+      redirect: 'follow',
+    });
+    const d = await res.json();
+    console.log('Orphan assignment response:', d);
+    return d;
+  } catch(e) {
+    console.error('Orphan assignment failed:', e.message);
+    return { success: false, error: e.message };
+  }
+}
+
 // ── REST endpoints ───────────────────────────────────────────
 app.get('/api/state', (req, res) => {
   res.json({ state, taktSeconds: TAKT_SECONDS, holdReasons: HOLD_REASONS });
@@ -268,6 +294,10 @@ app.get('/api/locations', (req, res) => {
 app.get('/api/lines', (req, res) => {
   res.json({ lines: OTHER_LINES });
 });
+// Returns orphan parts list + current assignments
+app.get('/api/orphans', (req, res) => {
+  res.json({ success: true, orphanParts: orphanPartsCache, orphanAssignments: orphanAssignCache, allLines: ALL_LINES });
+});
 app.get('/api/refresh-locations', async (req, res) => {
   await fetchLocations();
   await fetchInventory();
@@ -290,7 +320,7 @@ wss.on('connection', (ws, req) => {
 
   ws.on('close', () => { apolloClients.delete(ws); pickerClients.delete(ws); });
 
-  ws.on('message', raw => {
+  ws.on('message', async raw => {
     let msg; try { msg = JSON.parse(raw); } catch { return; }
 
     // ── Ping ─────────────────────────────────────────────────
@@ -377,7 +407,6 @@ wss.on('connection', (ws, req) => {
         time:         new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
         fulfilled:    false,
       };
-      console.log('Stored request priority:', req.priority);
       if (msg.stationId) {
         const st = state.stations.find(s => s.id === msg.stationId);
         if (st) {
@@ -441,7 +470,6 @@ wss.on('connection', (ws, req) => {
               partName: req.partName || '',
               location: msg.location || '',
               qty:      actualQty,
-              // ── Transaction context ──────────────────────
               line:     req.line    || '',
               station:  req.station || '',
             }),
@@ -483,7 +511,6 @@ wss.on('connection', (ws, req) => {
           partNum:  msg.partNum  || '',
           partName: msg.partName || '',
           qty:      msg.qty      || 1,
-          // ── Transaction context ──────────────────────────
           line:     msg.line    || '',
           station:  msg.station || '',
         }),
@@ -498,6 +525,28 @@ wss.on('connection', (ws, req) => {
           console.error('Stow failed:', e.message);
           ws.send(JSON.stringify({ type: 'stow-result', success: false, message: e.message }));
         });
+    }
+
+    // ── Assign orphan to line ─────────────────────────────────
+    if (msg.type === 'assign-orphan') {
+      const { partNum, partName, line, station } = msg;
+      if (!partNum || !line) {
+        ws.send(JSON.stringify({ type: 'assign-orphan-result', success: false, error: 'partNum and line required' }));
+        return;
+      }
+      const result = await postOrphanAssignment(partNum, partName || '', line, station || '');
+      if (result.success) {
+        // Update local orphan cache immediately so inventory reflects assignment without waiting for next poll
+        orphanAssignCache[partNum.toLowerCase()] = { line, station: station || '' };
+        const orphan = orphanPartsCache.find(o => o.partNum.toLowerCase() === partNum.toLowerCase());
+        if (orphan) {
+          orphan.assignedLine    = line;
+          orphan.assignedStation = station || '';
+        }
+        // Refresh full inventory so assigned line sees the part immediately
+        await fetchInventory();
+      }
+      ws.send(JSON.stringify({ type: 'assign-orphan-result', success: result.success, partNum, line, station, message: result.message || result.error }));
     }
 
     // ── Manual end takt ──────────────────────────────────────
