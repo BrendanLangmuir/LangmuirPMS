@@ -215,6 +215,8 @@ var pickKey       = 0;
 var recentStows   = [];
 var lastPong      = Date.now();
 var adjustedQtys  = {};  // reqId|location → adjusted qty, persists across renders
+var allStowParts  = [];  // merged BOM + locations + orphans for stow search
+var stowSelected  = null;
 
 // ── WebSocket ─────────────────────────────────────────────────
 var ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'?picker=1');
