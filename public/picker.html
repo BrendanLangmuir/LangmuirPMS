@@ -8,7 +8,6 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #1a1e24; color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
 
-  /* ── Header ── */
   .header { background: #12151a; border-bottom: 3px solid #C8102E; padding: 0 24px; display: flex; align-items: stretch; justify-content: space-between; min-height: 60px; }
   .header-left { display: flex; align-items: center; gap: 12px; }
   .brand-icon  { width: 36px; height: 36px; background: #C8102E; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; color: #fff; flex-shrink: 0; }
@@ -16,34 +15,27 @@
   .brand-text .btm { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: 0.06em; text-transform: uppercase; }
   .clock { font-size: 15px; font-weight: 700; color: #9ca3af; }
 
-  /* ── Connection ── */
   .conn-status { display: none; width: 100%; background: #7f1d1d; border-bottom: 2px solid #C8102E; padding: 10px 24px; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fca5a5; text-transform: uppercase; letter-spacing: 0.08em; }
 
-  /* ── Tabs ── */
   .tab-bar { display: flex; background: #12151a; border-bottom: 1px solid #2d3340; }
   .tab { flex: 1; padding: 14px 8px; font-size: 13px; font-weight: 800; cursor: pointer; color: #6b7280; border: none; background: none; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 3px solid transparent; margin-bottom: -1px; transition: all 0.15s; text-align: center; }
   .tab.active { color: #fff; border-bottom-color: #C8102E; }
   .tab:hover:not(.active) { color: #9ca3af; }
 
-  /* ── Page ── */
   .page { padding: 20px 24px; max-width: 600px; margin: 0 auto; }
 
-  /* ── Summary bar ── */
   .summary-bar { background: #12151a; border: 1px solid #2d3340; border-left: 4px solid #C8102E; border-radius: 6px; padding: 12px 18px; display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
   .summary-num   { font-size: 32px; font-weight: 900; color: #C8102E; line-height: 1; }
   .summary-label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; margin-left: 4px; }
 
-  /* ── Filter ── */
   .filter-bar { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
   .filter-btn { padding: 6px 14px; border-radius: 4px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1.5px solid #2d3340; background: #12151a; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; transition: all 0.15s; }
   .filter-btn.active { background: #C8102E; border-color: #C8102E; color: #fff; }
   .filter-btn:hover:not(.active) { border-color: #C8102E; color: #fff; }
 
-  /* ── Queue ── */
   .queue { display: flex; flex-direction: column; gap: 10px; }
   .empty { text-align: center; color: #374151; font-size: 13px; padding: 60px 0; text-transform: uppercase; letter-spacing: 0.1em; }
 
-  /* ── Request card ── */
   .req-card { background: #12151a; border: 1px solid #2d3340; border-radius: 8px; overflow: hidden; }
   .req-card-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #2d3340; flex-wrap: wrap; }
   .line-tag { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 8px; border-radius: 3px; flex-shrink: 0; }
@@ -65,14 +57,20 @@
   .req-body    { padding: 12px 14px; }
   .req-part    { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.02em; }
   .req-partnum { font-size: 11px; color: #C8102E; font-weight: 700; letter-spacing: 0.06em; margin-bottom: 8px; }
-  .req-meta    { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
-  .qty-badge   { background: #1f2937; border: 1px solid #374151; color: #d1d5db; font-size: 11px; font-weight: 700; border-radius: 3px; padding: 3px 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* ── Qty / remaining row ── */
+  .req-meta { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .qty-badge { background: #1f2937; border: 1px solid #374151; color: #d1d5db; font-size: 11px; font-weight: 700; border-radius: 3px; padding: 3px 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .remaining-badge { font-size: 11px; font-weight: 800; border-radius: 3px; padding: 3px 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .remaining-badge.partial { background: #2d1f00; border: 1px solid #92400e; color: #EF9F27; }
+  .remaining-badge.done    { background: #052e16; border: 1px solid #166534; color: #4ade80; }
   .stock-info  { font-size: 11px; color: #6b7280; }
   .stock-info span { color: #9ca3af; font-weight: 600; }
 
   /* ── Location rows ── */
   .loc-section { display: flex; flex-direction: column; gap: 6px; }
   .loc-row { background: #1f2937; border: 1px solid #374151; border-radius: 6px; padding: 10px 12px; }
+  .loc-row.exhausted { opacity: 0.45; }
   .loc-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
   .loc-code { font-size: 14px; font-weight: 800; color: #fff; flex: 1; font-family: 'Courier New', monospace; letter-spacing: 0.06em; }
   .loc-qty-txt { font-size: 12px; font-weight: 700; }
@@ -81,12 +79,17 @@
   .loc-pick-row { display: flex; align-items: center; gap: 8px; }
   .pick-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; flex: 1; }
   .adj-btn { width: 32px; height: 32px; border-radius: 4px; border: 1px solid #374151; background: #12151a; color: #fff; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .adj-btn:hover { background: #374151; }
+  .adj-btn:hover:not(:disabled) { background: #374151; }
+  .adj-btn:disabled { opacity: 0.3; cursor: default; }
   .adj-val { font-size: 18px; font-weight: 900; min-width: 28px; text-align: center; }
-  .pick-btn { background: #C8102E; border: none; border-radius: 4px; color: #fff; font-size: 11px; font-weight: 800; padding: 8px 14px; cursor: pointer; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.06em; }
-  .pick-btn:hover { background: #a00d24; }
-  .pick-btn:active { transform: scale(0.96); }
-  .no-loc { font-size: 12px; color: #4b5563; font-style: italic; padding: 6px 0; }
+  .pick-btn { border: none; border-radius: 4px; color: #fff; font-size: 11px; font-weight: 800; padding: 8px 14px; cursor: pointer; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.06em; }
+  .pick-btn.active   { background: #C8102E; }
+  .pick-btn.active:hover { background: #a00d24; }
+  .pick-btn.active:active { transform: scale(0.96); }
+  .pick-btn.exhausted-btn { background: #374151; color: #6b7280; cursor: default; }
+
+  /* ── Picked-from indicator ── */
+  .picked-from-note { font-size: 10px; color: #4ade80; margin-top: 6px; letter-spacing: 0.04em; }
 
   /* ── Stow form ── */
   .section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #6b7280; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
@@ -105,8 +108,7 @@
   .qty-input { flex: 1; }
   .send-btn { width: 100%; padding: 14px; border-radius: 6px; border: none; font-size: 14px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; background: #C8102E; color: #fff; transition: background 0.15s; }
   .send-btn:hover { background: #a00d24; }
-  .send-btn:active { transform: scale(0.98); }
-  .send-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+  .send-btn:disabled { opacity: 0.4; cursor: default; }
   .stow-search-wrap { position: relative; margin-bottom: 8px; }
   .stow-results { background: #1f2937; border: 1.5px solid #374151; border-radius: 6px; max-height: 200px; overflow-y: auto; margin-bottom: 10px; display: none; }
   .stow-result-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #2d3340; }
@@ -120,6 +122,7 @@
   .stow-selected-pa  { font-size: 13px; color: #fff; margin-top: 2px; }
   .stow-clear { float: right; background: none; border: none; color: #6b7280; cursor: pointer; font-size: 12px; font-weight: 700; text-transform: uppercase; }
   .stow-clear:hover { color: #f87171; }
+  .result-flash { display: none; border-radius: 6px; padding: 11px; margin-bottom: 12px; font-size: 13px; font-weight: 800; text-align: center; }
   .result-flash.success { background: #052e16; border: 1px solid #166534; color: #4ade80; }
   .result-flash.error   { background: #2d0808; border: 1px solid #7f1d1d; color: #f87171; }
   .recent-item { background: #12151a; border: 1px solid #2d3340; border-left: 3px solid #EF9F27; border-radius: 4px; padding: 10px 14px; margin-bottom: 6px; }
@@ -154,13 +157,14 @@
     <span class="summary-label">Pending Requests</span>
   </div>
   <div class="filter-bar">
-    <button class="filter-btn active" onclick="setFilter('all')"   id="filter-all">All</button>
-    <button class="filter-btn" onclick="setFilter('Apollo')"  id="filter-Apollo">Apollo</button>
-    <button class="filter-btn" onclick="setFilter('XF/PRO')"  id="filter-XF/PRO">XF/PRO</button>
-    <button class="filter-btn" onclick="setFilter('TITAN')"   id="filter-TITAN">Titan</button>
-    <button class="filter-btn" onclick="setFilter('VULCAN')"  id="filter-VULCAN">Vulcan</button>
-    <button class="filter-btn" onclick="setFilter('XR')"      id="filter-XR">XR</button>
-    <button class="filter-btn" onclick="setFilter('MR1')"     id="filter-MR1">MR1</button>
+    <button class="filter-btn active" onclick="setFilter('all')"    id="filter-all">All</button>
+    <button class="filter-btn" onclick="setFilter('Apollo')"   id="filter-Apollo">Apollo</button>
+    <button class="filter-btn" onclick="setFilter('XF/PRO')"   id="filter-XF/PRO">XF/PRO</button>
+    <button class="filter-btn" onclick="setFilter('TITAN')"    id="filter-TITAN">Titan</button>
+    <button class="filter-btn" onclick="setFilter('VULCAN')"   id="filter-VULCAN">Vulcan</button>
+    <button class="filter-btn" onclick="setFilter('XR')"       id="filter-XR">XR</button>
+    <button class="filter-btn" onclick="setFilter('MR1')"      id="filter-MR1">MR1</button>
+    <button class="filter-btn" onclick="setFilter('Unassigned')" id="filter-Unassigned">Unassigned</button>
   </div>
   <div class="queue" id="queue"><div class="empty">— No Pending Requests —</div></div>
 </div>
@@ -170,7 +174,6 @@
   <div class="section-label">Stow a part</div>
   <div class="card">
     <div id="result-flash" class="result-flash"></div>
-
     <div class="field">
       <label>Search Part Number or Description</label>
       <div class="stow-search-wrap">
@@ -183,12 +186,10 @@
         <div class="stow-selected-pa" id="stow-sel-pa"></div>
       </div>
     </div>
-
     <div class="field">
       <label>Shelf Location <span style="font-weight:400;color:#4b5563;text-transform:none;letter-spacing:0;">(e.g. 01-A1-A)</span></label>
       <input type="text" id="location-sel" placeholder="e.g. 01-A1-A" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"/>
     </div>
-
     <div class="field">
       <label>Quantity</label>
       <div class="qty-row">
@@ -211,9 +212,9 @@ var pickMap       = {};
 var pickKey       = 0;
 var recentStows   = [];
 var lastPong      = Date.now();
-var adjustedQtys  = {}; // reqId+location → adjusted qty, persists across renders
+var adjustedQtys  = {};  // reqId|location → adjusted qty, persists across renders
 
-// ── WebSocket ─────────────────────────────────────────────
+// ── WebSocket ─────────────────────────────────────────────────
 var ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'?picker=1');
 ws.onopen  = function() { document.getElementById('conn-status').style.display = 'none'; };
 ws.onclose = function() { document.getElementById('conn-status').style.display = 'flex'; setTimeout(function(){ location.reload(); }, 3000); };
@@ -225,16 +226,12 @@ ws.onmessage = function(e) {
   if (msg.type === 'locations')  { locationsData = msg.locations; renderQueue(); }
   if (msg.type === 'stow-result') handleStowResult(msg);
 };
-
 setInterval(function() { if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'ping' })); }, 25000);
 setInterval(function() { if (Date.now() - lastPong > 35000) location.reload(); }, 5000);
-
-// Polling fallback
 setInterval(function() {
   fetch('/api/requests').then(function(r){return r.json();}).then(function(d){ requests = d.requests; renderQueue(); }).catch(function(){});
 }, 3000);
 
-// ── Load locations ────────────────────────────────────────
 function loadLocations() {
   fetch('/api/locations').then(function(r){return r.json();}).then(function(d){
     if (d.success && d.locations) { locationsData = d.locations; renderQueue(); }
@@ -243,7 +240,7 @@ function loadLocations() {
 loadLocations();
 setInterval(loadLocations, 30000);
 
-// ── Tabs ──────────────────────────────────────────────────
+// ── Tabs ──────────────────────────────────────────────────────
 function showTab(tab) {
   document.getElementById('view-pick').style.display = tab === 'pick' ? 'block' : 'none';
   document.getElementById('view-stow').style.display = tab === 'stow' ? 'block' : 'none';
@@ -251,7 +248,7 @@ function showTab(tab) {
   document.getElementById('tab-stow').className = 'tab' + (tab === 'stow' ? ' active' : '');
 }
 
-// ── Filter ────────────────────────────────────────────────
+// ── Filter ────────────────────────────────────────────────────
 function setFilter(f) {
   activeFilter = f;
   document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
@@ -260,7 +257,7 @@ function setFilter(f) {
   renderQueue();
 }
 
-// ── Pick helpers ──────────────────────────────────────────
+// ── Pick helpers ──────────────────────────────────────────────
 function getLocsForPart(partNum) {
   if (!partNum) return [];
   return locationsData.filter(function(l) { return l.partNum.toLowerCase() === partNum.toLowerCase(); });
@@ -268,28 +265,27 @@ function getLocsForPart(partNum) {
 
 function adjQty(key, delta) {
   var entry = pickMap[key];
-  if (!entry) return;
-  entry.qty = Math.max(0, (entry.qty || 1) + delta); // allow 0 to cancel
+  if (!entry || entry.exhausted) return;
+  entry.qty = Math.max(0, (entry.qty || 1) + delta);
+  // Cap at available stock for this location
+  entry.qty = Math.min(entry.qty, entry.availableQty);
   adjustedQtys[entry.reqId + '|' + entry.location] = entry.qty;
-  var el = document.getElementById('pick-qty-' + key);
-  if (el) {
-    el.textContent = entry.qty === 0 ? 'Cancel' : entry.qty;
-    el.style.color = entry.qty === 0 ? '#f87171' : '#fff';
-  }
+  var valEl = document.getElementById('pick-qty-' + key);
+  if (valEl) valEl.textContent = entry.qty;
 }
 
 function handlePick(key) {
   var entry = pickMap[key];
-  if (!entry) return;
+  if (!entry || entry.exhausted) return;
   ws.send(JSON.stringify({ type: 'fulfill', reqId: entry.reqId, location: entry.location, qty: entry.qty }));
 }
 
 function lineClass(line) {
-  var map = {'Apollo':'apollo','APOLLO':'apollo','XF/PRO':'xf','TITAN':'titan','VULCAN':'vulcan','XR':'xr','MR1':'mr1'};
+  var map = { 'Apollo':'apollo','APOLLO':'apollo','XF/PRO':'xf','TITAN':'titan','VULCAN':'vulcan','XR':'xr','MR1':'mr1' };
   return map[line] || 'apollo';
 }
 
-// ── Render queue ──────────────────────────────────────────
+// ── Render queue ──────────────────────────────────────────────
 function renderQueue() {
   var filtered = activeFilter === 'all' ? requests : requests.filter(function(r){ return r.line === activeFilter; });
   document.getElementById('total-count').textContent = requests.length;
@@ -299,34 +295,76 @@ function renderQueue() {
   pickMap = {}; pickKey = 0;
 
   var html = filtered.map(function(r) {
-    var partLabel = (r.partNum && r.partName) ? r.partNum + ' — ' + r.partName : (r.text || '');
-    var qtyNeeded = r.qty || 1;
-    var locs      = getLocsForPart(r.partNum);
-    var totalQty  = locs.reduce(function(s,l){ return s + (parseInt(l.quantity)||0); }, 0);
-    var pri       = r.priority || 'low';
+    var partLabel  = (r.partNum && r.partName) ? r.partNum + ' — ' + r.partName : (r.text || '');
+    var qtyNeeded  = r.qty || 1;
+    var qtyFulfilled = r.qtyFulfilled || 0;
+    var qtyRemaining = Math.max(0, qtyNeeded - qtyFulfilled);
+    var locs       = getLocsForPart(r.partNum);
+    var totalQty   = locs.reduce(function(s,l){ return s + (parseInt(l.quantity)||0); }, 0);
+    var pri        = r.priority || 'low';
+    var pickedLocs = r.pickedLocations || {};
 
-          var locHtml = locs.length ? locs.map(function(l) {
-      var lq       = parseInt(l.quantity) || 0;
-      var isLow    = lq < qtyNeeded;
-      var key      = pickKey++;
-      // Use persisted adjusted qty if available, otherwise default to qtyNeeded
-      var adjKey   = r.id + '|' + l.location;
-      var initQty  = adjustedQtys[adjKey] !== undefined ? adjustedQtys[adjKey] : qtyNeeded;
-      pickMap[key] = { reqId: r.id, location: l.location, qty: initQty };
+    // Remaining badge
+    var remainingHtml = '';
+    if (qtyFulfilled > 0 && qtyRemaining > 0) {
+      remainingHtml = '<span class="remaining-badge partial">' + qtyRemaining + ' remaining</span>';
+    } else if (qtyFulfilled > 0 && qtyRemaining === 0) {
+      remainingHtml = '<span class="remaining-badge done">✓ Fulfilled</span>';
+    }
+
+    var locHtml = locs.length ? locs.map(function(l) {
+      var lq          = parseInt(l.quantity) || 0;
+      var isLow       = lq < qtyRemaining;
+      var alreadyPicked = pickedLocs[l.location] || 0;
+      var isExhausted = lq === 0 && alreadyPicked > 0;  // location was picked from and is now empty
+      var key         = pickKey++;
+      var adjKey      = r.id + '|' + l.location;
+
+      // Default pick qty: min of remaining needed and available stock at this location
+      var defaultQty  = Math.min(qtyRemaining, lq);
+      if (defaultQty < 1 && !isExhausted) defaultQty = qtyRemaining; // no stock but show needed qty
+      var initQty     = adjustedQtys[adjKey] !== undefined ? adjustedQtys[adjKey] : defaultQty;
+      // If location now exhausted, override to 0
+      if (isExhausted) initQty = 0;
+
+      pickMap[key] = { reqId: r.id, location: l.location, qty: initQty, availableQty: lq, exhausted: isExhausted };
+
+      var pickedNote = alreadyPicked > 0
+        ? '<div class="picked-from-note">✓ ' + alreadyPicked + ' already picked from this location</div>'
+        : '';
+
+      if (isExhausted) {
+        return '<div class="loc-row exhausted">' +
+          '<div class="loc-top">' +
+            '<span class="loc-code">' + esc(l.location) + '</span>' +
+            '<span class="loc-qty-txt low">0 in stock</span>' +
+          '</div>' +
+          '<div class="loc-pick-row">' +
+            '<span class="pick-label">Exhausted</span>' +
+            '<button class="adj-btn" disabled>−</button>' +
+            '<span class="adj-val" id="pick-qty-' + key + '" style="color:#4b5563">0</span>' +
+            '<button class="adj-btn" disabled>+</button>' +
+            '<button class="pick-btn exhausted-btn">Picked</button>' +
+          '</div>' +
+          pickedNote +
+        '</div>';
+      }
+
       return '<div class="loc-row">' +
         '<div class="loc-top">' +
           '<span class="loc-code">' + esc(l.location) + '</span>' +
-          '<span class="loc-qty-txt ' + (isLow?'low':'ok') + '">' + (isLow?'⚠️ ':'') + lq + ' in stock</span>' +
+          '<span class="loc-qty-txt ' + (isLow?'low':'ok') + '">' + (isLow?'⚠ ':'') + lq + ' in stock</span>' +
         '</div>' +
         '<div class="loc-pick-row">' +
           '<span class="pick-label">Picking:</span>' +
           '<button class="adj-btn" onclick="adjQty(' + key + ',-1)">−</button>' +
           '<span class="adj-val" id="pick-qty-' + key + '">' + initQty + '</span>' +
           '<button class="adj-btn" onclick="adjQty(' + key + ',1)">+</button>' +
-          '<button class="pick-btn" onclick="handlePick(' + key + ')" style="' + (initQty===0?'background:#374151;':'') + '">✓ ' + (initQty===0?'Cancel':'Picked') + '</button>' +
+          '<button class="pick-btn active" onclick="handlePick(' + key + ')">✓ Picked</button>' +
         '</div>' +
-        '</div>';
-    }).join('') : '<div class="no-loc">No warehouse location on file</div>';
+        pickedNote +
+      '</div>';
+    }).join('') : '<div style="font-size:12px;color:#4b5563;font-style:italic;padding:6px 0;">No warehouse location on file</div>';
 
     return '<div class="req-card">' +
       '<div class="req-card-header">' +
@@ -340,7 +378,8 @@ function renderQueue() {
         (r.partNum ? '<div class="req-partnum">' + esc(r.partNum) + '</div>' : '') +
         '<div class="req-meta">' +
           '<span class="qty-badge">Qty needed: ' + qtyNeeded + '</span>' +
-          (locs.length ? '<span class="stock-info">Total stock: <span>' + totalQty + '</span></span>' : '') +
+          remainingHtml +
+          (locs.length ? '<span class="stock-info">Warehouse total: <span>' + totalQty + '</span></span>' : '') +
         '</div>' +
         '<div class="loc-section">' + locHtml + '</div>' +
       '</div>' +
@@ -350,7 +389,7 @@ function renderQueue() {
   queue.innerHTML = html;
 }
 
-// ── BOM search for stow ───────────────────────────────────
+// ── BOM search for stow ───────────────────────────────────────
 var allBomParts  = [];
 var stowSelected = null;
 
@@ -391,14 +430,12 @@ function selectStowPart(pn, pa) {
   document.getElementById('stow-sel-pn').textContent = pn;
   document.getElementById('stow-sel-pa').textContent = pa;
 }
-
 function clearStowPart() {
   stowSelected = null;
   document.getElementById('stow-selected').style.display = 'none';
   document.getElementById('stow-search').value = '';
 }
 
-// ── Stow ──────────────────────────────────────────────────
 function changeQty(delta) {
   var el = document.getElementById('qty-stow');
   el.value = Math.max(1, (parseInt(el.value) || 1) + delta);
@@ -407,21 +444,11 @@ function changeQty(delta) {
 function stowPart() {
   var location = document.getElementById('location-sel').value.trim().toUpperCase();
   var qty      = Math.max(1, parseInt(document.getElementById('qty-stow').value) || 1);
-
   if (!stowSelected) { showResult(false, 'Please search and select a part'); return; }
   if (!location)     { showResult(false, 'Please enter a shelf location'); return; }
-
   var btn = document.getElementById('stow-btn');
   btn.disabled = true; btn.textContent = 'Stowing...';
-
-  ws.send(JSON.stringify({
-    type:     'stow',
-    location: location,
-    partNum:  stowSelected.partNum,
-    partName: stowSelected.partName,
-    qty:      qty,
-  }));
-
+  ws.send(JSON.stringify({ type: 'stow', location, partNum: stowSelected.partNum, partName: stowSelected.partName, qty }));
   setTimeout(function() {
     if (btn.disabled) { btn.disabled = false; btn.textContent = '📥 Stow Part'; showResult(false, 'No response — check connection'); }
   }, 8000);
@@ -432,11 +459,9 @@ function handleStowResult(msg) {
   btn.disabled = false; btn.textContent = '📥 Stow Part';
   if (msg.success) {
     var location = document.getElementById('location-sel').value;
-    var partNum  = stowSelected ? stowSelected.partNum  : '';
-    var partName = stowSelected ? stowSelected.partName : '';
     var qty      = parseInt(document.getElementById('qty-stow').value) || 1;
     showResult(true, msg.message || 'Stowed successfully');
-    recentStows.unshift({ location, partNum, partName, qty, time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) });
+    recentStows.unshift({ location, partNum: stowSelected ? stowSelected.partNum : '', partName: stowSelected ? stowSelected.partName : '', qty, time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) });
     if (recentStows.length > 10) recentStows.pop();
     renderRecent();
     clearStowPart();
@@ -465,7 +490,6 @@ function renderRecent() {
   }).join('');
 }
 
-// ── Clock ─────────────────────────────────────────────────
 function updateClock() {
   document.getElementById('clock').textContent =
     new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
