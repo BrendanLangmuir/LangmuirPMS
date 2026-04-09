@@ -226,7 +226,7 @@ setInterval(function() { if (ws.readyState === 1) ws.send(JSON.stringify({ type:
 setInterval(function() { if (Date.now() - lastPong > 35000) location.reload(); }, 5000);
 setInterval(function() {
   fetch('/api/requests').then(function(r){return r.json();}).then(function(d){ requests = d.requests; renderQueue(); }).catch(function(){});
-}, 3000);
+}, 8000);
 
 // ── Load locations + BOM ──────────────────────────────────────
 function loadLocations() {
@@ -371,6 +371,8 @@ function lineClass(line) {
 
 // ── Render queue ──────────────────────────────────────────────
 function renderQueue() {
+  // Don't rebuild DOM while user is typing in a pick qty field
+  if (document.activeElement && document.activeElement.classList.contains('adj-val')) return;
   var filtered = activeFilter === 'all' ? requests : requests.filter(function(r){ return r.line === activeFilter; });
   document.getElementById('total-count').textContent = requests.length;
   var queue = document.getElementById('queue');
