@@ -35,7 +35,7 @@ const HOLD_REASONS = [
   'Waiting for previous station',
 ];
 
-const ALL_LINES = ['Apollo', 'XF/PRO', 'TITAN', 'VULCAN', 'XR', 'MR1'];
+const ALL_LINES   = ['Apollo', 'XF/PRO', 'TITAN', 'VULCAN', 'XR', 'MR1'];
 const OTHER_LINES = ['XF/PRO', 'TITAN', 'VULCAN', 'XR', 'MR1'];
 
 const SCHEDULED_BREAKS = [
@@ -180,23 +180,23 @@ function endCycle() {
   });
 }
 
-// ── Locations cache ──────────────────────────────────────────
-let locationsCache = [];
+// ── Fetch with retry ─────────────────────────────────────────
 async function fetchWithRetry(url, options, retries = 2, delayMs = 2000) {
   for (let i = 0; i < retries; i++) {
     try {
-      const r = await fetch(url, options);
+      const r    = await fetch(url, options);
       const text = await r.text();
-      const d = JSON.parse(text);
-      return d;
+      return JSON.parse(text);
     } catch(e) {
-      console.warn(`Fetch attempt ${i+1} failed: ${e.message}`);
+      console.warn(`Fetch attempt ${i + 1} failed: ${e.message}`);
       if (i < retries - 1) await new Promise(res => setTimeout(res, delayMs));
     }
   }
   return null;
 }
 
+// ── Locations cache ──────────────────────────────────────────
+let locationsCache = [];
 async function fetchLocations() {
   if (!LOCATIONS_URL) return;
   const d = await fetchWithRetry(LOCATIONS_URL, { redirect: 'follow' });
@@ -211,9 +211,9 @@ fetchLocations();
 setInterval(fetchLocations, 5 * 60 * 1000);
 
 // ── Inventory + orphan cache ─────────────────────────────────
-let inventoryCache     = null;
-let orphanPartsCache   = [];
-let orphanAssignCache  = {};  // partNum.lower → { line, station }
+let inventoryCache    = null;
+let orphanPartsCache  = [];
+let orphanAssignCache = {};
 
 async function fetchInventory() {
   if (!LOCATIONS_URL) return;
@@ -263,7 +263,7 @@ async function postToSheets(payload) {
   } catch(e) { console.error('Sheets post failed:', e.message); }
 }
 
-// ── Orphan assignment post to Apps Script ────────────────────
+// ── Orphan assignment post ───────────────────────────────────
 async function postOrphanAssignment(partNum, partName, line, station) {
   if (!LOCATIONS_URL) return { success: false, error: 'No LOCATIONS_URL' };
   try {
@@ -283,9 +283,7 @@ async function postOrphanAssignment(partNum, partName, line, station) {
 }
 
 // ── REST endpoints ───────────────────────────────────────────
-app.get('/api/state', (req, res) => {
-  res.json({ state, taktSeconds: TAKT_SECONDS, holdReasons: HOLD_REASONS });
-});
+app.get('/api/state',    (req, res) => res.json({ state, taktSeconds: TAKT_SECONDS, holdReasons: HOLD_REASONS }));
 app.get('/api/requests', (req, res) => {
   const priOrder = { high: 0, medium: 1, low: 2 };
   const active = allRequests
@@ -298,19 +296,12 @@ app.get('/api/inventory', (req, res) => {
   res.json({ success: false, error: 'Inventory not yet loaded — please wait a moment and refresh' });
 });
 app.get('/api/bom', (req, res) => {
-  if (inventoryCache && inventoryCache.bomList) return res.json({ success: true, bomList: inventoryCache.bomList });
+  if (inventoryCache?.bomList) return res.json({ success: true, bomList: inventoryCache.bomList });
   res.json({ success: false, error: 'BOM not yet loaded' });
 });
-app.get('/api/locations', (req, res) => {
-  res.json({ success: true, locations: locationsCache });
-});
-app.get('/api/lines', (req, res) => {
-  res.json({ lines: OTHER_LINES });
-});
-// Returns orphan parts list + current assignments
-app.get('/api/orphans', (req, res) => {
-  res.json({ success: true, orphanParts: orphanPartsCache, orphanAssignments: orphanAssignCache, allLines: ALL_LINES });
-});
+app.get('/api/locations',  (req, res) => res.json({ success: true, locations: locationsCache }));
+app.get('/api/lines',      (req, res) => res.json({ lines: OTHER_LINES }));
+app.get('/api/orphans',    (req, res) => res.json({ success: true, orphanParts: orphanPartsCache, orphanAssignments: orphanAssignCache, allLines: ALL_LINES }));
 app.get('/api/refresh-locations', async (req, res) => {
   await fetchLocations();
   await fetchInventory();
@@ -405,20 +396,22 @@ wss.on('connection', (ws, req) => {
       const stName = msg.station || (msg.stationId ? (state.stations.find(s => s.id === msg.stationId)?.name || null) : null);
       const loc    = lookupLocation(msg.partNum || '');
       const req = {
-        id:           nextReqId++,
-        line:         msg.line     || 'Apollo',
-        station:      stName,
-        partNum:      msg.partNum  || '',
-        partName:     msg.partName || '',
-        text:         msg.text     || '',
-        qty:          msg.qty      || 1,
-        priority:     String(msg.priority || 'low'),
-        totalQty:     loc.totalQty,
-        allLocations: loc.allLocations,
-        location:     loc.location,
-        stockQty:     loc.quantity,
-        time:         new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        fulfilled:    false,
+        id:              nextReqId++,
+        line:            msg.line     || 'Apollo',
+        station:         stName,
+        partNum:         msg.partNum  || '',
+        partName:        msg.partName || '',
+        text:            msg.text     || '',
+        qty:             msg.qty      || 1,
+        qtyFulfilled:    0,
+        pickedLocations: {},
+        priority:        String(msg.priority || 'low'),
+        totalQty:        loc.totalQty,
+        allLocations:    loc.allLocations,
+        location:        loc.location,
+        stockQty:        loc.quantity,
+        time:            new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        fulfilled:       false,
       };
       if (msg.stationId) {
         const st = state.stations.find(s => s.id === msg.stationId);
@@ -432,7 +425,7 @@ wss.on('connection', (ws, req) => {
       broadcastRequests();
     }
 
-    // ── Dismiss inventory request ────────────────────────────
+    // ── Dismiss ──────────────────────────────────────────────
     if (msg.type === 'dismiss') {
       const st = state.stations.find(s => s.id === msg.stationId);
       if (st) { st.requests = (st.requests || []).filter(r => r.id !== msg.reqId); broadcastState(); }
@@ -440,7 +433,7 @@ wss.on('connection', (ws, req) => {
       if (req) { req.fulfilled = true; broadcastRequests(); }
     }
 
-    // ── Andon call ───────────────────────────────────────────
+    // ── Andon ────────────────────────────────────────────────
     if (msg.type === 'andon') {
       const st = state.stations.find(s => s.id === msg.stationId);
       if (st && (msg.level === 'line-lead' || msg.level === 'floor-manager')) {
@@ -456,60 +449,94 @@ wss.on('connection', (ws, req) => {
     if (msg.type === 'andon-clear') {
       const st = state.stations.find(s => s.id === msg.stationId);
       if (st) {
-        if (st.andonPauseStart) {
-          st.totalAndonPause += Date.now() - st.andonPauseStart;
-          st.andonPauseStart = null;
-        }
+        if (st.andonPauseStart) { st.totalAndonPause += Date.now() - st.andonPauseStart; st.andonPauseStart = null; }
         st.andon = null; st.andonTime = null;
         if (st.stationStatus === 'active' && !state.paused) st.stationStartTime = Date.now();
         broadcastState();
       }
     }
 
-    // ── Fulfill ──────────────────────────────────────────────
+    // ── Fulfill (partial fulfillment supported) ───────────────
     if (msg.type === 'fulfill') {
       const req = allRequests.find(r => r.id === msg.reqId);
       console.log('Fulfill received:', { reqId: msg.reqId, location: msg.location, partNum: req?.partNum, qty: msg.qty });
-      if (req) {
+      if (!req) return;
+
+      const pickedQty = (msg.qty !== undefined && msg.qty !== null) ? Number(msg.qty) : (req.qty || 1);
+      const location  = msg.location || '';
+
+      // qty 0 + no location = cancel button, close immediately without subtracting
+      if (pickedQty === 0 && !location) {
         req.fulfilled = true;
-        const actualQty = (msg.qty !== undefined && msg.qty !== null) ? msg.qty : (req.qty || 1);
-        if (LOCATIONS_URL && req.partNum && actualQty > 0) {
-          fetch(LOCATIONS_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action:   'subtract',
-              partNum:  req.partNum  || '',
-              partName: req.partName || '',
-              location: msg.location || '',
-              qty:      actualQty,
-              line:     req.line    || '',
-              station:  req.station || '',
-            }),
-            redirect: 'follow',
-          }).then(r => r.json())
-            .then(d => {
-              console.log('Qty subtracted:', d);
-              if (d.success && d.newQty !== undefined) {
-                const loc = locationsCache.find(l =>
-                  l.partNum.toLowerCase()  === (req.partNum || '').toLowerCase() &&
-                  l.location.toLowerCase() === (msg.location || '').toLowerCase()
-                );
-                if (loc) {
-                  loc.quantity = String(d.newQty);
-                  const locMsg = JSON.stringify({ type: 'locations', locations: locationsCache });
-                  pickerClients.forEach(c => { if (c.readyState === 1) c.send(locMsg); });
-                }
-              }
-            })
-            .catch(e => console.error('Subtract failed:', e.message));
-        }
         state.stations.forEach(st => {
-          if (st.requests) st.requests = st.requests.filter(r => r.id !== msg.reqId);
+          if (st.requests) st.requests = st.requests.filter(r => r.id !== req.id);
         });
         broadcastState();
         broadcastRequests();
+        return;
       }
+
+      // Track per-location picks
+      if (!req.pickedLocations) req.pickedLocations = {};
+      if (location) req.pickedLocations[location] = (req.pickedLocations[location] || 0) + pickedQty;
+
+      // Accumulate fulfilled qty
+      if (!req.qtyFulfilled) req.qtyFulfilled = 0;
+      req.qtyFulfilled += pickedQty;
+
+      const qtyOriginal  = req.qty || 1;
+      const qtyRemaining = Math.max(0, qtyOriginal - req.qtyFulfilled);
+      console.log(`Fulfill: req ${req.id} | picked ${pickedQty} from ${location} | fulfilled ${req.qtyFulfilled}/${qtyOriginal} | remaining ${qtyRemaining}`);
+
+      // Subtract from sheet
+      if (LOCATIONS_URL && req.partNum && pickedQty > 0) {
+        fetch(LOCATIONS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action:   'subtract',
+            partNum:  req.partNum  || '',
+            partName: req.partName || '',
+            location: location,
+            qty:      pickedQty,
+            line:     req.line    || '',
+            station:  req.station || '',
+          }),
+          redirect: 'follow',
+        }).then(r => r.json())
+          .then(d => {
+            console.log('Qty subtracted:', d);
+            if (d.success && d.newQty !== undefined) {
+              const loc = locationsCache.find(l =>
+                l.partNum.toLowerCase()  === (req.partNum || '').toLowerCase() &&
+                l.location.toLowerCase() === location.toLowerCase()
+              );
+              if (loc) {
+                loc.quantity = String(d.newQty);
+                const reqLoc = req.allLocations && req.allLocations.find(l =>
+                  l.location.toLowerCase() === location.toLowerCase()
+                );
+                if (reqLoc) reqLoc.quantity = String(d.newQty);
+              }
+              pickerClients.forEach(c => {
+                if (c.readyState === 1) c.send(JSON.stringify({ type: 'locations', locations: locationsCache }));
+              });
+            }
+          })
+          .catch(e => console.error('Subtract failed:', e.message));
+      }
+
+      // Only close when fully fulfilled
+      if (qtyRemaining <= 0) {
+        req.fulfilled = true;
+        state.stations.forEach(st => {
+          if (st.requests) st.requests = st.requests.filter(r => r.id !== req.id);
+        });
+        broadcastState();
+      }
+
+      // Always broadcast so picker card updates remaining qty
+      broadcastRequests();
     }
 
     // ── Stow ─────────────────────────────────────────────────
@@ -524,8 +551,8 @@ wss.on('connection', (ws, req) => {
           partNum:  msg.partNum  || '',
           partName: msg.partName || '',
           qty:      msg.qty      || 1,
-          line:     msg.line    || '',
-          station:  msg.station || '',
+          line:     msg.line     || '',
+          station:  msg.station  || '',
         }),
         redirect: 'follow',
       }).then(r => r.json())
@@ -534,13 +561,10 @@ wss.on('connection', (ws, req) => {
           if (d.success) { fetchLocations(); fetchInventory(); }
           ws.send(JSON.stringify({ type: 'stow-result', success: d.success, message: d.message || d.error }));
         })
-        .catch(e => {
-          console.error('Stow failed:', e.message);
-          ws.send(JSON.stringify({ type: 'stow-result', success: false, message: e.message }));
-        });
+        .catch(e => ws.send(JSON.stringify({ type: 'stow-result', success: false, message: e.message })));
     }
 
-    // ── Assign orphan to line ─────────────────────────────────
+    // ── Assign orphan ─────────────────────────────────────────
     if (msg.type === 'assign-orphan') {
       const { partNum, partName, line, station } = msg;
       console.log('assign-orphan received:', { partNum, line });
@@ -550,14 +574,9 @@ wss.on('connection', (ws, req) => {
       }
       const result = await postOrphanAssignment(partNum, partName || '', line, station || '');
       if (result.success) {
-        // Update local orphan cache immediately so inventory reflects assignment without waiting for next poll
         orphanAssignCache[partNum.toLowerCase()] = { line, station: station || '' };
         const orphan = orphanPartsCache.find(o => o.partNum.toLowerCase() === partNum.toLowerCase());
-        if (orphan) {
-          orphan.assignedLine    = line;
-          orphan.assignedStation = station || '';
-        }
-        // Refresh full inventory so assigned line sees the part immediately
+        if (orphan) { orphan.assignedLine = line; orphan.assignedStation = station || ''; }
         await fetchInventory();
       }
       ws.send(JSON.stringify({ type: 'assign-orphan-result', success: result.success, partNum, line, station, message: result.message || result.error }));
