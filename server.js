@@ -543,6 +543,7 @@ wss.on('connection', (ws, req) => {
     // ── Assign orphan to line ─────────────────────────────────
     if (msg.type === 'assign-orphan') {
       const { partNum, partName, line, station } = msg;
+      console.log('assign-orphan received:', { partNum, line });
       if (!partNum || !line) {
         ws.send(JSON.stringify({ type: 'assign-orphan-result', success: false, error: 'partNum and line required' }));
         return;
