@@ -371,6 +371,14 @@ function lineClass(line) {
 
 // ── Render queue ──────────────────────────────────────────────
 function renderQueue() {
+  // Skip re-render if nothing changed — prevents keyboard dismissal on touch devices
+  var currentJSON = JSON.stringify(requests) + activeFilter + JSON.stringify(locationsData);
+  if (currentJSON === lastRequestsJSON) return;
+  lastRequestsJSON = currentJSON;
+
+  // Also skip if user is actively typing in a pick qty field
+  var focused = document.activeElement;
+  if (focused && focused.classList.contains('adj-val')) return;
   var filtered = activeFilter === 'all' ? requests : requests.filter(function(r){ return r.line === activeFilter; });
   document.getElementById('total-count').textContent = requests.length;
   var queue = document.getElementById('queue');
