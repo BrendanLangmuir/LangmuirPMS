@@ -60,8 +60,9 @@ function getScheduledBreak() {
 function todayStr() { return new Date().toDateString(); }
 
 // ── Global request store ─────────────────────────────────────
-let allRequests = [];
-let nextReqId   = 1;
+let allRequests      = [];
+let nextReqId        = 1;
+let recentlyFulfilled = []; // max 2, server-side persisted
 
 // ── Apollo state ─────────────────────────────────────────────
 function resetStations() {
@@ -301,6 +302,9 @@ app.get('/api/bom', (req, res) => {
 });
 app.get('/api/locations',  (req, res) => res.json({ success: true, locations: locationsCache }));
 app.get('/api/lines',      (req, res) => res.json({ lines: OTHER_LINES }));
+app.get('/api/recent-picks', (req, res) => {
+  res.json({ success: true, recentPicks: recentlyFulfilled });
+});
 app.get('/api/orphans',    (req, res) => res.json({ success: true, orphanParts: orphanPartsCache, orphanAssignments: orphanAssignCache, allLines: ALL_LINES }));
 app.get('/api/refresh-locations', async (req, res) => {
   await fetchLocations();
@@ -316,6 +320,7 @@ wss.on('connection', (ws, req) => {
   if (isPicker) {
     pickerClients.add(ws);
     ws.send(JSON.stringify({ type: 'requests', requests: allRequests.filter(r => !r.fulfilled) }));
+    ws.send(JSON.stringify({ type: 'recent-picks', recentPicks: recentlyFulfilled }));
   } else {
     apolloClients.add(ws);
     ws.send(JSON.stringify({ type: 'state', state, taktSeconds: TAKT_SECONDS, holdReasons: HOLD_REASONS }));
@@ -529,10 +534,27 @@ wss.on('connection', (ws, req) => {
       // Only close when fully fulfilled
       if (qtyRemaining <= 0) {
         req.fulfilled = true;
+
+        // Store in recently fulfilled (max 2, newest first)
+        recentlyFulfilled.unshift({
+          partNum:  req.partNum  || '',
+          partName: req.partName || '',
+          qty:      req.qty      || 1,
+          location: location,
+          line:     req.line     || '',
+          time:     new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        });
+        if (recentlyFulfilled.length > 2) recentlyFulfilled.pop();
+
         state.stations.forEach(st => {
           if (st.requests) st.requests = st.requests.filter(r => r.id !== req.id);
         });
         broadcastState();
+
+        // Broadcast updated recent picks to all picker clients
+        pickerClients.forEach(c => {
+          if (c.readyState === 1) c.send(JSON.stringify({ type: 'recent-picks', recentPicks: recentlyFulfilled }));
+        });
       }
 
       // Always broadcast so picker card updates remaining qty
@@ -564,7 +586,52 @@ wss.on('connection', (ws, req) => {
         .catch(e => ws.send(JSON.stringify({ type: 'stow-result', success: false, message: e.message })));
     }
 
-    // ── Assign orphan ─────────────────────────────────────────
+    // ── Transfer ──────────────────────────────────────────────
+    if (msg.type === 'transfer') {
+      if (!LOCATIONS_URL) return;
+      const { partNum, partName, fromLocation, toLocation, qty } = msg;
+      console.log('Transfer:', partNum, fromLocation, '→', toLocation, 'qty:', qty);
+
+      // Step 1 — subtract from source
+      const subtractRes = await fetchWithRetry(LOCATIONS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'subtract', partNum, partName, location: fromLocation, qty, line: '', station: '' }),
+        redirect: 'follow',
+      });
+
+      if (!subtractRes || !subtractRes.success) {
+        ws.send(JSON.stringify({ type: 'transfer-result', success: false, message: subtractRes?.error || 'Failed to subtract from source location' }));
+        return;
+      }
+
+      // Step 2 — add to destination
+      const stowRes = await fetchWithRetry(LOCATIONS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'stow', partNum, partName, location: toLocation, qty, line: '', station: '' }),
+        redirect: 'follow',
+      });
+
+      if (!stowRes || !stowRes.success) {
+        ws.send(JSON.stringify({ type: 'transfer-result', success: false, message: 'Subtracted from source but failed to add to destination — check sheet manually' }));
+        return;
+      }
+
+      // Update local cache
+      const srcLoc = locationsCache.find(l => l.partNum.toLowerCase() === partNum.toLowerCase() && l.location.toLowerCase() === fromLocation.toLowerCase());
+      if (srcLoc) srcLoc.quantity = String(subtractRes.newQty);
+
+      await fetchLocations();
+
+      // Broadcast updated locations to picker clients
+      pickerClients.forEach(c => {
+        if (c.readyState === 1) c.send(JSON.stringify({ type: 'locations', locations: locationsCache }));
+      });
+
+      ws.send(JSON.stringify({ type: 'transfer-result', success: true, message: 'Transferred ' + qty + ' of ' + partNum + ' from ' + fromLocation + ' to ' + toLocation }));
+      return;
+    }
     if (msg.type === 'assign-orphan') {
       const { partNum, partName, line, station } = msg;
       console.log('assign-orphan received:', { partNum, line });
