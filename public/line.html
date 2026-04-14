@@ -25,6 +25,7 @@ input::placeholder { color: #4b5563; }
 .stock-ok   { color: #4ade80; background: #052e16; border: 1px solid #166534; }
 .stock-warn { color: #f87171; background: #2d0a0a; border: 1px solid #7f1d1d; }
 .stock-none { color: #9ca3af; background: #1f2937; border: 1px solid #374151; }
+.stock-out  { color: #f87171; background: #2d0808; border: 1px solid #7f1d1d; }
 .qty-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .qty-label { font-size: 12px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; }
 .qty-input { flex: 1; margin-bottom: 0; }
@@ -43,6 +44,7 @@ input::placeholder { color: #4b5563; }
 .part-item:hover { background: #374151; color: #fff; }
 .part-item .pn { font-weight: 800; color: #C8102E; font-size: 11px; letter-spacing: 0.06em; }
 .part-item .pa { font-size: 12px; color: #9ca3af; margin-top: 1px; }
+.part-item .out-tag { font-size: 10px; color: #f87171; font-weight: 700; letter-spacing: 0.06em; margin-top: 3px; }
 .part-item .line-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
 .part-item .ltag { font-size: 10px; color: #a78bfa; background: #1e1535; border: 1px solid #4c1d95; border-radius: 3px; padding: 1px 6px; }
 .not-found { padding: 14px; text-align: center; }
@@ -56,7 +58,6 @@ input::placeholder { color: #4b5563; }
 .selected-bar-clear:hover { color: #f87171; }
 .assigned-lines-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .ltag-purple { font-size: 10px; color: #a78bfa; background: #1e1535; border: 1px solid #4c1d95; border-radius: 3px; padding: 2px 8px; }
-.deliver-label { font-size: 10px; font-weight: 700; color: #f87171; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
 .deliver-sel { width: 100%; background: #1f2937; border: 1.5px solid #374151; border-radius: 6px; color: #fff; font-size: 14px; font-weight: 600; padding: 11px 14px; outline: none; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; background-color: #1f2937; margin-bottom: 14px; }
 .deliver-sel:focus { border-color: #C8102E; }
 .deliver-sel.err  { border-color: #C8102E; }
@@ -65,8 +66,8 @@ input::placeholder { color: #4b5563; }
 .btn-red  { background: #C8102E; color: #fff; } .btn-red:hover { background: #a00d24; }
 .btn-red:disabled { opacity: 0.35; cursor: default; }
 .flash { border-radius: 6px; padding: 11px; text-align: center; font-size: 13px; font-weight: 800; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.08em; display: none; }
-.flash-green  { background: #052e16; border: 1px solid #166534; color: #4ade80; }
-.flash-red    { background: #2d0808; border: 1px solid #7f1d1d; color: #f87171; }
+.flash-green { background: #052e16; border: 1px solid #166534; color: #4ade80; }
+.flash-red   { background: #2d0808; border: 1px solid #7f1d1d; color: #f87171; }
 .req-item { background: #12151a; border: 1px solid #2d3340; border-left: 3px solid #C8102E; border-radius: 6px; padding: 10px 14px; margin-bottom: 6px; display: flex; align-items: flex-start; gap: 10px; }
 .req-content { flex: 1; }
 .req-text { font-size: 13px; font-weight: 600; color: #fff; word-break: break-word; }
@@ -131,15 +132,12 @@ input::placeholder { color: #4b5563; }
   <div class="card">
     <input class="search-input" id="orphan-search" type="text" placeholder="Search part # or description..." autocomplete="off"/>
     <div class="parts-list" id="orphan-list"></div>
-
     <div class="selected-bar" id="orphan-sel-bar" style="display:none">
       <div class="selected-bar-lbl">Selected <button class="selected-bar-clear" onclick="oClear()">✕ Clear</button></div>
       <div class="selected-bar-text" id="orphan-sel-text"></div>
       <div class="assigned-lines-row" id="orphan-sel-lines"></div>
     </div>
-
     <div id="orphan-stock" style="display:none" class="stock-info"></div>
-
     <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#6b7280;margin-bottom:8px;">Deliver to line:</div>
     <select class="deliver-sel" id="orphan-line-sel">
       <option value="">— Select line —</option>
@@ -150,33 +148,26 @@ input::placeholder { color: #4b5563; }
       <option value="XR">XR</option>
       <option value="MR1">MR1</option>
     </select>
-
     <div class="qty-row">
       <span class="qty-label">Qty</span>
       <input class="qty-input" id="orphan-qty" type="number" inputmode="numeric" min="1" value="1"/>
     </div>
-
     <div class="pri-label">Priority</div>
     <div class="pri-row" id="orphan-pri-row">
       <button class="pri-btn sel-low" data-level="low">Low</button>
       <button class="pri-btn" data-level="medium">Medium</button>
       <button class="pri-btn" data-level="high">High</button>
     </div>
-
     <div class="flash flash-green" id="orphan-sent-flash">Request Sent!</div>
     <div class="flash flash-red"   id="orphan-err-flash"></div>
-
     <button class="btn btn-red" id="orphan-send-btn" disabled>Send Request</button>
   </div>
-
   <div class="sec">Active requests</div>
   <div id="orphan-req-list"></div>
 </div>
 
 <script>
-// ─────────────────────────────────────────────────────────────
-// Globals
-// ─────────────────────────────────────────────────────────────
+// ── Globals ───────────────────────────────────────────────────
 var params   = new URLSearchParams(location.search);
 var lineName = decodeURIComponent(params.get('line') || 'Apollo');
 var myReqs   = [];
@@ -188,9 +179,7 @@ var selectedOrphan = null;
 var priority  = 'low';
 var oPriority = 'low';
 
-// ─────────────────────────────────────────────────────────────
-// Line switcher
-// ─────────────────────────────────────────────────────────────
+// ── Line switcher ─────────────────────────────────────────────
 var sw = document.getElementById('line-switcher');
 sw.value = lineName;
 if (!sw.value) { sw.value = 'Apollo'; lineName = 'Apollo'; }
@@ -203,7 +192,6 @@ sw.addEventListener('change', function() {
   location.href = url.toString();
 });
 
-// Show correct view
 if (lineName === 'Unassigned') {
   document.getElementById('view-line').style.display   = 'none';
   document.getElementById('view-orphan').style.display = 'block';
@@ -212,9 +200,7 @@ if (lineName === 'Unassigned') {
   document.getElementById('view-orphan').style.display = 'none';
 }
 
-// ─────────────────────────────────────────────────────────────
-// WebSocket
-// ─────────────────────────────────────────────────────────────
+// ── WebSocket ─────────────────────────────────────────────────
 var ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'?line='+encodeURIComponent(lineName));
 ws.onopen  = function() { document.getElementById('conn-status').style.display = 'none'; };
 ws.onclose = function() { document.getElementById('conn-status').style.display = 'flex'; setTimeout(function(){ location.reload(); }, 3000); };
@@ -241,17 +227,59 @@ setInterval(function(){
   }).catch(function(){});
 }, 3000);
 
-// ─────────────────────────────────────────────────────────────
-// Load inventory / orphans
-// ─────────────────────────────────────────────────────────────
+// ── Load inventory ────────────────────────────────────────────
 function loadInventory() {
   if (lineName === 'Unassigned') { loadOrphans(); return; }
   fetch('/api/inventory').then(function(r){ return r.json(); }).then(function(d) {
     if (!d.success) { document.getElementById('inv-loading').textContent = 'Error: '+(d.error||'unknown'); return; }
     window._locations = d.locations || [];
-    var inv = d.inventory || {};
-    var key = inv[lineName] ? lineName : (inv[lineName.toUpperCase()] ? lineName.toUpperCase() : null);
-    allItems = key ? inv[key] : [];
+    var inv       = d.inventory || {};
+    var lineUpper = lineName.toUpperCase();
+    var isApollo  = lineUpper === 'APOLLO';
+
+    // Find the correct inventory groups for this line
+    var lineGroups;
+    if (isApollo) {
+      // Apollo splits by station — find groups whose items have line === 'APOLLO'
+      lineGroups = Object.keys(inv).filter(function(grp) {
+        var items = inv[grp] || [];
+        return items.length > 0 && String(items[0].line || '').toUpperCase() === 'APOLLO';
+      });
+    } else {
+      lineGroups = Object.keys(inv).filter(function(grp) {
+        return grp.toUpperCase() === lineUpper;
+      });
+    }
+
+    // Collect in-stock parts (have locations)
+    var inStock = {};
+    var inStockItems = [];
+    lineGroups.forEach(function(grp) {
+      (inv[grp] || []).forEach(function(item) {
+        var key = item.partNum.toLowerCase();
+        if (inStock[key]) return;
+        inStock[key] = true;
+        inStockItems.push(item);
+      });
+    });
+
+    // Collect all BOM parts for this line — including those with no locations
+    var bomForLine = {};
+    lineGroups.forEach(function(grp) {
+      (inv[grp] || []).forEach(function(item) {
+        var key = item.partNum.toLowerCase();
+        if (!bomForLine[key]) bomForLine[key] = { partNum: item.partNum, partName: item.partName };
+      });
+    });
+
+    // Build allItems — in-stock first, then out-of-stock BOM parts
+    allItems = inStockItems.slice();
+    Object.keys(bomForLine).forEach(function(pnKey) {
+      if (inStock[pnKey]) return;
+      var p = bomForLine[pnKey];
+      allItems.push({ partNum: p.partNum, partName: p.partName, outOfStock: true });
+    });
+
     document.getElementById('inv-loading').style.display = 'none';
     document.getElementById('inv-form').style.display    = '';
     renderParts('');
@@ -265,7 +293,6 @@ function loadOrphans() {
   fetch('/api/orphans').then(function(r){ return r.json(); }).then(function(d) {
     if (!d.success) return;
     orphanItems = d.orphanParts || [];
-    // Also grab locations for stock display
     fetch('/api/inventory').then(function(r2){ return r2.json(); }).then(function(d2){
       if (d2.success) window._locations = d2.locations || [];
     }).catch(function(){});
@@ -273,9 +300,7 @@ function loadOrphans() {
 }
 loadInventory();
 
-// ─────────────────────────────────────────────────────────────
-// Normal line — priority buttons
-// ─────────────────────────────────────────────────────────────
+// ── Priority buttons ──────────────────────────────────────────
 document.querySelectorAll('#pri-row .pri-btn').forEach(function(btn) {
   btn.addEventListener('click', function() {
     priority = this.getAttribute('data-level');
@@ -285,9 +310,7 @@ document.querySelectorAll('#pri-row .pri-btn').forEach(function(btn) {
   });
 });
 
-// ─────────────────────────────────────────────────────────────
-// Normal line — parts list
-// ─────────────────────────────────────────────────────────────
+// ── Parts list ────────────────────────────────────────────────
 function renderParts(q) {
   var list = document.getElementById('parts-list');
   if (selectedPart || !q) { list.innerHTML = ''; return; }
@@ -300,15 +323,16 @@ function renderParts(q) {
     return;
   }
   list.innerHTML = filtered.slice(0,40).map(function(i){
-    var pn=String(i.partNum||''),pa=String(i.partName||'');
-    return '<div class="part-item" onclick="selectPart(\''+esc(pn)+'\',\''+esc(pa)+'\')">'
-      +'<div class="pn">'+esc(pn)+'</div><div class="pa">'+esc(pa)+'</div></div>';
+    var pn = String(i.partNum||''), pa = String(i.partName||'');
+    var outTag = i.outOfStock ? '<div class="out-tag">OUT OF STOCK</div>' : '';
+    return '<div class="part-item" onclick="selectPart(\''+esc(pn)+'\',\''+esc(pa)+'\','+!!i.outOfStock+')">'
+      +'<div class="pn">'+esc(pn)+'</div><div class="pa">'+esc(pa)+'</div>'+outTag+'</div>';
   }).join('');
 }
 document.getElementById('part-search').addEventListener('input', function(){ renderParts(this.value); });
 
-function selectPart(pn, pa) {
-  selectedPart = { partNum: pn, partName: pa };
+function selectPart(pn, pa, isOut) {
+  selectedPart = { partNum: pn, partName: pa, outOfStock: !!isOut };
   document.getElementById('part-search').value = '';
   document.getElementById('parts-list').innerHTML = '';
   document.getElementById('selected-bar').style.display = 'block';
@@ -316,6 +340,7 @@ function selectPart(pn, pa) {
   document.getElementById('send-btn').disabled = false;
   showStock();
 }
+
 function clearSelected() {
   selectedPart = null;
   document.getElementById('selected-bar').style.display = 'none';
@@ -324,31 +349,51 @@ function clearSelected() {
   document.getElementById('part-search').value = '';
   document.getElementById('parts-list').innerHTML = '';
 }
+
 function showStock() {
   var sEl = document.getElementById('stock-info');
   if (!selectedPart) { sEl.style.display='none'; return; }
   var qty  = Math.max(1, parseInt(document.getElementById('qty-input').value)||1);
-  var locs = (window._locations||[]).filter(function(l){ return String(l.partNum||'').toLowerCase()===selectedPart.partNum.toLowerCase(); });
-  if (locs.length) {
-    var total = locs.reduce(function(s,l){ return s+(parseInt(l.quantity)||0); },0);
-    sEl.style.display=''; sEl.className='stock-info '+(total<qty?'stock-warn':'stock-ok');
-    sEl.innerHTML=(total<qty?'Low Stock: ':'In Stock: ')+'<strong>'+total+'</strong> available';
-  } else { sEl.style.display=''; sEl.className='stock-info stock-none'; sEl.textContent='No warehouse location on file for this part'; }
+  var locs = (window._locations||[]).filter(function(l){
+    return String(l.partNum||'').toLowerCase() === selectedPart.partNum.toLowerCase();
+  });
+  var total = locs.reduce(function(s,l){ return s+(parseInt(l.quantity)||0); }, 0);
+  if (!locs.length || total === 0) {
+    sEl.style.display=''; sEl.className='stock-info stock-out';
+    sEl.innerHTML='⚠ Out of Stock — <strong>0</strong> available. Sending will escalate to warehouse.';
+  } else if (total < qty) {
+    sEl.style.display=''; sEl.className='stock-info stock-warn';
+    sEl.innerHTML='Low Stock: <strong>'+total+'</strong> available';
+  } else {
+    sEl.style.display=''; sEl.className='stock-info stock-ok';
+    sEl.innerHTML='In Stock: <strong>'+total+'</strong> available';
+  }
 }
 document.getElementById('qty-input').addEventListener('input', showStock);
 
 document.getElementById('send-btn').addEventListener('click', function() {
   if (!selectedPart) return;
-  var qty = Math.max(1, parseInt(document.getElementById('qty-input').value)||1);
-  ws.send(JSON.stringify({ type:'request', line:lineName, partNum:selectedPart.partNum, partName:selectedPart.partName, text:selectedPart.partNum+' — '+selectedPart.partName, qty:qty, priority:priority }));
+  var locs  = (window._locations||[]).filter(function(l){
+    return String(l.partNum||'').toLowerCase() === selectedPart.partNum.toLowerCase();
+  });
+  var total = locs.reduce(function(s,l){ return s+(parseInt(l.quantity)||0); }, 0);
+  var isOut = !locs.length || total === 0;
+  var qty   = isOut ? 0 : Math.max(1, parseInt(document.getElementById('qty-input').value)||1);
+  ws.send(JSON.stringify({
+    type:     'request',
+    line:     lineName,
+    partNum:  selectedPart.partNum,
+    partName: selectedPart.partName,
+    text:     selectedPart.partNum + ' — ' + selectedPart.partName,
+    qty:      qty,
+    priority: isOut ? 'high' : priority,
+  }));
   clearSelected();
-  document.getElementById('qty-input').value='1';
-  showFlash('sent-flash');
+  document.getElementById('qty-input').value = '1';
+  showFlash('sent-flash', isOut ? '⚠ Escalation Sent!' : null);
 });
 
-// ─────────────────────────────────────────────────────────────
-// Orphan view — priority buttons
-// ─────────────────────────────────────────────────────────────
+// ── Orphan view ───────────────────────────────────────────────
 document.querySelectorAll('#orphan-pri-row .pri-btn').forEach(function(btn) {
   btn.addEventListener('click', function() {
     oPriority = this.getAttribute('data-level');
@@ -358,9 +403,6 @@ document.querySelectorAll('#orphan-pri-row .pri-btn').forEach(function(btn) {
   });
 });
 
-// ─────────────────────────────────────────────────────────────
-// Orphan view — parts list
-// ─────────────────────────────────────────────────────────────
 document.getElementById('orphan-search').addEventListener('input', function() {
   var q = this.value;
   var list = document.getElementById('orphan-list');
@@ -379,26 +421,21 @@ document.getElementById('orphan-search').addEventListener('input', function() {
     var tags  = lines.map(function(l){ return '<span class="ltag">→ '+esc(l)+'</span>'; }).join('');
     return '<div class="part-item" onclick="oSelect(\''+esc(pn)+'\',\''+esc(pa)+'\')">'
       +'<div class="pn">'+esc(pn)+'</div><div class="pa">'+esc(pa)+'</div>'
-      +(tags ? '<div class="line-tags">'+tags+'</div>' : '')
-      +'</div>';
+      +(tags ? '<div class="line-tags">'+tags+'</div>' : '')+'</div>';
   }).join('');
 });
 
 function oSelect(pn, pa) {
   var item = orphanItems.find(function(i){ return i.partNum===pn; });
   selectedOrphan = { partNum:pn, partName:pa, assignedLines: item ? (Array.isArray(item.assignedLines) ? item.assignedLines : (item.assignedLine ? [item.assignedLine] : [])) : [] };
-
   document.getElementById('orphan-search').value = '';
   document.getElementById('orphan-list').innerHTML = '';
-
   document.getElementById('orphan-sel-bar').style.display = 'block';
   document.getElementById('orphan-sel-text').textContent  = pn + ' — ' + pa;
   var linesHtml = selectedOrphan.assignedLines.length
     ? selectedOrphan.assignedLines.map(function(l){ return '<span class="ltag-purple">→ '+esc(l)+'</span>'; }).join('')
     : '<span style="font-size:10px;color:#4b5563;">Not yet assigned to any line</span>';
   document.getElementById('orphan-sel-lines').innerHTML = linesHtml;
-
-  // Reset controls to defaults
   document.getElementById('orphan-line-sel').value = '';
   document.getElementById('orphan-line-sel').classList.remove('err');
   document.getElementById('orphan-qty').value = '1';
@@ -449,20 +486,13 @@ document.getElementById('orphan-send-btn').addEventListener('click', function() 
   }
   document.getElementById('orphan-line-sel').classList.remove('err');
   var qty = Math.max(1, parseInt(document.getElementById('orphan-qty').value)||1);
-
-  // Assign to line in sheet — always a new row if this part+line not already there
   ws.send(JSON.stringify({ type:'assign-orphan', partNum:selectedOrphan.partNum, partName:selectedOrphan.partName, line:line, station:'' }));
-
-  // Send request tagged to the chosen line — never "Unassigned"
   ws.send(JSON.stringify({ type:'request', line:line, partNum:selectedOrphan.partNum, partName:selectedOrphan.partName, text:selectedOrphan.partNum+' — '+selectedOrphan.partName, qty:qty, priority:oPriority }));
-
   oClear();
   showFlash('orphan-sent-flash');
 });
 
-// ─────────────────────────────────────────────────────────────
-// Shared helpers
-// ─────────────────────────────────────────────────────────────
+// ── Shared helpers ────────────────────────────────────────────
 function showFlash(id, msg) {
   var el = document.getElementById(id);
   if (msg) el.textContent = msg;
