@@ -35,8 +35,8 @@ const HOLD_REASONS = [
   'Waiting for previous station',
 ];
 
-const ALL_LINES   = ['Apollo', 'XF/PRO', 'TITAN', 'VULCAN', 'XR', 'MR1'];
-const OTHER_LINES = ['XF/PRO', 'TITAN', 'VULCAN', 'XR', 'MR1'];
+const ALL_LINES   = ['Apollo', 'XF/PRO', 'TITAN', 'VULCAN', 'XR', 'MR1', 'Shipping'];
+const OTHER_LINES = ['XF/PRO', 'TITAN', 'VULCAN', 'XR', 'MR1', 'Shipping'];
 
 const SCHEDULED_BREAKS = [
   { id: 'break1', label: 'Morning Break',   start: [10, 30], end: [10, 45] },
@@ -111,6 +111,18 @@ function effectiveElapsedMs() {
 const apolloClients = new Set();
 const pickerClients = new Set();
 
+function getActiveRequestsWithPositions() {
+  const priOrder = { high: 0, medium: 1, low: 2 };
+  return allRequests
+    .filter(r => !r.fulfilled)
+    .sort((a, b) => {
+      const p = (priOrder[a.priority] ?? 2) - (priOrder[b.priority] ?? 2);
+      if (p !== 0) return p;
+      return (a.submittedAt || 0) - (b.submittedAt || 0);
+    })
+    .map((r, i) => Object.assign({}, r, { queuePosition: i + 1 }));
+}
+
 function broadcastApollo(msg) {
   const data = JSON.stringify(msg);
   apolloClients.forEach(c => { if (c.readyState === 1) c.send(data); });
@@ -119,11 +131,7 @@ function broadcastState() {
   broadcastApollo({ type: 'state', state, taktSeconds: TAKT_SECONDS, holdReasons: HOLD_REASONS });
 }
 function broadcastRequests() {
-  const priOrder = { high: 0, medium: 1, low: 2 };
-  const active = allRequests
-    .filter(r => !r.fulfilled)
-    .sort((a, b) => (priOrder[a.priority] ?? 2) - (priOrder[b.priority] ?? 2));
-  const msg = JSON.stringify({ type: 'requests', requests: active });
+  const msg = JSON.stringify({ type: 'requests', requests: getActiveRequestsWithPositions() });
   wss.clients.forEach(c => { if (c.readyState === 1) c.send(msg); });
 }
 
@@ -264,6 +272,47 @@ async function postToSheets(payload) {
   } catch(e) { console.error('Sheets post failed:', e.message); }
 }
 
+// ── Request completion logger ────────────────────────────────
+// Writes a "Request Completed" row to the Apps Script transaction log with
+// submitted/completed timestamps and total elapsed time (HH:MM:SS).
+// outcome: 'fulfilled' | 'cancelled' | 'dismissed'
+function logRequestCompletion(req, outcome) {
+  if (!LOCATIONS_URL) return;
+  const completedAtMs = Date.now();
+  const submittedAtMs = req.submittedAt || completedAtMs;
+  const totalSec      = Math.max(0, Math.round((completedAtMs - submittedAtMs) / 1000));
+  const hh = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+  const mm = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+  const ss = String(totalSec % 60).padStart(2, '0');
+  const totalTime = hh + ':' + mm + ':' + ss;
+
+  const submittedAtStr = new Date(submittedAtMs).toLocaleString('en-US', { timeZone: 'America/Chicago' });
+  const completedAtStr = new Date(completedAtMs).toLocaleString('en-US', { timeZone: 'America/Chicago' });
+
+  fetch(LOCATIONS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action:       'logRequest',
+      partNum:      req.partNum  || '',
+      partName:     req.partName || '',
+      qty:          req.qty      || 0,
+      qtyFulfilled: req.qtyFulfilled || 0,
+      unit:         req.unit     || 'Part',
+      priority:     req.priority || 'low',
+      line:         req.line     || '',
+      station:      req.station  || '',
+      outcome:      outcome,
+      submittedAt:  submittedAtStr,
+      completedAt:  completedAtStr,
+      totalTime:    totalTime,
+    }),
+    redirect: 'follow',
+  }).then(r => r.json())
+    .then(d => console.log('Request log:', d))
+    .catch(e => console.error('Request log failed:', e.message));
+}
+
 // ── Orphan assignment post ───────────────────────────────────
 async function postOrphanAssignment(partNum, partName, line, station) {
   if (!LOCATIONS_URL) return { success: false, error: 'No LOCATIONS_URL' };
@@ -286,11 +335,7 @@ async function postOrphanAssignment(partNum, partName, line, station) {
 // ── REST endpoints ───────────────────────────────────────────
 app.get('/api/state',    (req, res) => res.json({ state, taktSeconds: TAKT_SECONDS, holdReasons: HOLD_REASONS }));
 app.get('/api/requests', (req, res) => {
-  const priOrder = { high: 0, medium: 1, low: 2 };
-  const active = allRequests
-    .filter(r => !r.fulfilled)
-    .sort((a, b) => (priOrder[a.priority] ?? 2) - (priOrder[b.priority] ?? 2));
-  res.json({ requests: active });
+  res.json({ requests: getActiveRequestsWithPositions() });
 });
 app.get('/api/inventory', (req, res) => {
   if (inventoryCache) return res.json(inventoryCache);
@@ -319,12 +364,12 @@ wss.on('connection', (ws, req) => {
 
   if (isPicker) {
     pickerClients.add(ws);
-    ws.send(JSON.stringify({ type: 'requests', requests: allRequests.filter(r => !r.fulfilled) }));
+    ws.send(JSON.stringify({ type: 'requests', requests: getActiveRequestsWithPositions() }));
     ws.send(JSON.stringify({ type: 'recent-picks', recentPicks: recentlyFulfilled }));
   } else {
     apolloClients.add(ws);
     ws.send(JSON.stringify({ type: 'state', state, taktSeconds: TAKT_SECONDS, holdReasons: HOLD_REASONS }));
-    ws.send(JSON.stringify({ type: 'requests', requests: allRequests.filter(r => !r.fulfilled) }));
+    ws.send(JSON.stringify({ type: 'requests', requests: getActiveRequestsWithPositions() }));
   }
 
   ws.on('close', () => { apolloClients.delete(ws); pickerClients.delete(ws); });
@@ -400,6 +445,7 @@ wss.on('connection', (ws, req) => {
       console.log('Request received:', msg.line, msg.partNum || msg.text, 'priority:', msg.priority);
       const stName = msg.station || (msg.stationId ? (state.stations.find(s => s.id === msg.stationId)?.name || null) : null);
       const loc    = lookupLocation(msg.partNum || '');
+      const nowMs  = Date.now();
       const req = {
         id:              nextReqId++,
         line:            msg.line     || 'Apollo',
@@ -408,6 +454,7 @@ wss.on('connection', (ws, req) => {
         partName:        msg.partName || '',
         text:            msg.text     || '',
         qty:             (msg.qty !== undefined && msg.qty !== null) ? msg.qty : 1,
+        unit:            String(msg.unit || 'Part'),   // display-only: Part / Box / Pallet
         qtyFulfilled:    0,
         pickedLocations: {},
         priority:        String(msg.priority || 'low'),
@@ -416,6 +463,7 @@ wss.on('connection', (ws, req) => {
         allLocations:    loc.allLocations,
         location:        loc.location,
         stockQty:        loc.quantity,
+        submittedAt:     nowMs,                        // epoch ms, for math / elapsed display
         time:            new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
         fulfilled:       false,
       };
@@ -423,7 +471,15 @@ wss.on('connection', (ws, req) => {
         const st = state.stations.find(s => s.id === msg.stationId);
         if (st) {
           st.requests = st.requests || [];
-          st.requests.push({ id: req.id, text: req.text || (req.partNum + ' — ' + req.partName), time: req.time });
+          st.requests.push({
+            id: req.id,
+            text: req.text || (req.partNum + ' — ' + req.partName),
+            time: req.time,
+            submittedAt: req.submittedAt,
+            qty: req.qty,
+            unit: req.unit,
+            priority: req.priority,
+          });
           broadcastState();
         }
       }
@@ -436,7 +492,11 @@ wss.on('connection', (ws, req) => {
       const st = state.stations.find(s => s.id === msg.stationId);
       if (st) { st.requests = (st.requests || []).filter(r => r.id !== msg.reqId); broadcastState(); }
       const req = allRequests.find(r => r.id === msg.reqId);
-      if (req) { req.fulfilled = true; broadcastRequests(); }
+      if (req && !req.fulfilled) {
+        req.fulfilled = true;
+        logRequestCompletion(req, 'dismissed');
+        broadcastRequests();
+      }
     }
 
     // ── Andon ────────────────────────────────────────────────
@@ -468,12 +528,21 @@ wss.on('connection', (ws, req) => {
       console.log('Fulfill received:', { reqId: msg.reqId, location: msg.location, partNum: req?.partNum, qty: msg.qty });
       if (!req) return;
 
-      const pickedQty = (msg.qty !== undefined && msg.qty !== null) ? Number(msg.qty) : (req.qty || 1);
       const location  = msg.location || '';
+      // If no location is supplied, treat as cancel regardless of qty — the only
+      // caller that sends fulfill is the picker (who always supplies a location)
+      // or a requester's Cancel button (which sends no location).
+      let pickedQty;
+      if (!location) {
+        pickedQty = 0;
+      } else {
+        pickedQty = (msg.qty !== undefined && msg.qty !== null) ? Number(msg.qty) : (req.qty || 1);
+      }
 
       // qty 0 + no location = cancel button, close immediately without subtracting
       if (pickedQty === 0 && !location) {
         req.fulfilled = true;
+        logRequestCompletion(req, 'cancelled');
         state.stations.forEach(st => {
           if (st.requests) st.requests = st.requests.filter(r => r.id !== req.id);
         });
@@ -496,17 +565,29 @@ wss.on('connection', (ws, req) => {
 
       // Subtract from sheet
       if (LOCATIONS_URL && req.partNum && pickedQty > 0) {
+        // If this pick closes out the request, compute total time so the
+        // Transaction Log row captures it. Partial picks leave it blank.
+        let totalTime = '';
+        if (qtyRemaining <= 0 && req.submittedAt) {
+          const totalSec = Math.max(0, Math.round((Date.now() - req.submittedAt) / 1000));
+          const hh = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+          const mm = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+          const ss = String(totalSec % 60).padStart(2, '0');
+          totalTime = hh + ':' + mm + ':' + ss;
+        }
         fetch(LOCATIONS_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action:   'subtract',
-            partNum:  req.partNum  || '',
-            partName: req.partName || '',
-            location: location,
-            qty:      pickedQty,
-            line:     req.line    || '',
-            station:  req.station || '',
+            action:      'subtract',
+            partNum:     req.partNum  || '',
+            partName:    req.partName || '',
+            location:    location,
+            qty:         pickedQty,
+            line:        req.line     || '',
+            priority:    req.priority || '',
+            submittedAt: req.submittedAt ? new Date(req.submittedAt).toLocaleString('en-US', { timeZone: 'America/Chicago' }) : '',
+            totalTime:   totalTime,
           }),
           redirect: 'follow',
         }).then(r => r.json())
@@ -535,6 +616,8 @@ wss.on('connection', (ws, req) => {
       // Only close when fully fulfilled
       if (qtyRemaining <= 0) {
         req.fulfilled = true;
+        // Note: completion is already logged to the Transaction Log by the
+        // subtract/Pick row above (with priority/submittedAt/totalTime attached).
 
         // Store in recently fulfilled (max 2, newest first)
         recentlyFulfilled.unshift({
