@@ -2,395 +2,580 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>APOLLO Production Board</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+<title>Inventory Request</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #1a1e24; color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
-
-  /* ── Header ── */
-  .header { background: #12151a; border-bottom: 3px solid #C8102E; padding: 0 28px; display: flex; align-items: stretch; justify-content: space-between; min-height: 64px; }
-  .header-left  { display: flex; align-items: center; gap: 14px; }
-  .header-mid   { display: flex; align-items: center; justify-content: center; flex: 1; }
-  .header-right { display: flex; align-items: center; gap: 20px; }
-  .brand-icon   { width: 38px; height: 38px; background: #C8102E; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 17px; color: #fff; flex-shrink: 0; }
-  .brand-text .top { font-size: 10px; font-weight: 700; color: #C8102E; letter-spacing: 0.15em; text-transform: uppercase; }
-  .brand-text .btm { font-size: 17px; font-weight: 800; color: #fff; letter-spacing: 0.06em; text-transform: uppercase; }
-
-  /* ── Takt timer in header ── */
-  .takt-pill { text-align: center; padding: 10px 48px; border-left: 1px solid #2d3340; border-right: 1px solid #2d3340; }
-  .takt-label { font-size: 10px; font-weight: 700; color: #6b7280; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 4px; }
-  .takt-time  { font-size: 64px; font-weight: 900; letter-spacing: -3px; color: #EF9F27; line-height: 1; transition: color 0.3s; }
-  .takt-time.warning { color: #f97316; }
-  .takt-time.over    { color: #C8102E; animation: flash-red 0.8s ease-in-out infinite; }
-  .takt-time.paused  { color: #60a5fa; }
-  @keyframes flash-red { 0%,100%{opacity:1} 50%{opacity:0.5} }
-
-  .datetime .date  { font-size: 11px; color: #6b7280; text-align: right; }
-  .datetime .clock { font-size: 17px; font-weight: 700; color: #fff; text-align: right; }
-
-  .conn-status { display: none; width: 100%; background: #7f1d1d; border-bottom: 2px solid #C8102E; padding: 8px 28px; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fca5a5; text-transform: uppercase; letter-spacing: 0.08em; }
-  .break-banner { display: none; background: #12151a; border-bottom: 2px solid #60a5fa; padding: 12px 28px; align-items: center; gap: 16px; }
-  .break-banner.lunch   { border-color: #EF9F27; }
-  .break-banner.visible { display: flex; }
-  .banner-icon  { font-size: 22px; }
-  .banner-title { font-size: 16px; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.06em; }
-  .banner-sub   { font-size: 12px; color: #6b7280; margin-top: 1px; }
-  .banner-timer { font-size: 22px; font-weight: 900; color: #60a5fa; margin-left: auto; }
-  .break-banner.lunch .banner-timer { color: #EF9F27; }
-
-  /* ── Controls ── */
-  .controls { display: flex; align-items: center; justify-content: space-between; padding: 16px 28px; border-bottom: 1px solid #2d3340; flex-wrap: wrap; gap: 10px; }
-  .ctrl-left { display: flex; gap: 8px; align-items: center; }
-  .btn { padding: 10px 24px; border-radius: 4px; font-size: 13px; font-weight: 800; cursor: pointer; border: none; text-transform: uppercase; letter-spacing: 0.08em; transition: background 0.15s; }
-  .btn-start  { background: #C8102E; color: #fff; } .btn-start:hover  { background: #a00d24; }
-  .btn-end    { background: #374151; color: #fff; } .btn-end:hover    { background: #4b5563; }
-  .btn-pause  { background: transparent; color: #9ca3af; border: 1px solid #374151; }
-  .btn-pause:hover  { border-color: #9ca3af; color: #fff; }
-  .btn-resume { background: transparent; color: #60a5fa; border: 1px solid #374151; }
-  .btn-resume:hover { border-color: #60a5fa; }
-  .cycle-info { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; }
-  .cycle-info span { font-size: 22px; font-weight: 900; color: #fff; margin-left: 6px; letter-spacing: 0; }
-
-  /* ── Tabs ── */
-  .tab-bar { display: flex; gap: 0; padding: 0 28px; border-bottom: 1px solid #2d3340; background: #12151a; }
-  .tab { padding: 12px 20px; font-size: 12px; font-weight: 700; cursor: pointer; color: #6b7280; border: none; background: none; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 3px solid transparent; margin-bottom: -1px; transition: all 0.15s; }
-  .tab.active { color: #fff; border-bottom-color: #C8102E; }
-  .tab:hover:not(.active) { color: #9ca3af; }
-
-  /* ── Page body ── */
-  .page { padding: 24px 28px; }
-
-  /* ── Layout ── */
-  .main-layout { display: flex; gap: 20px; align-items: flex-start; }
-  .stations-col { flex: 1; min-width: 0; }
-  .feed-col { width: 280px; flex-shrink: 0; }
-
-  .section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #6b7280; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
-  .section-label::after { content: ''; flex: 1; height: 1px; background: #2d3340; }
-
-  /* ── Station grids ── */
-  .grid { display: grid; gap: 10px; margin-bottom: 24px; }
-  .grid-main { grid-template-columns: repeat(4, 1fr); }
-  .grid-sub  { grid-template-columns: repeat(3, 1fr); }
-
-  /* ── Station cards ── */
-  .card { border-radius: 6px; padding: 14px 12px; text-align: center; border: 1px solid #2d3340; background: #12151a; transition: all 0.3s; }
-  .card.running { background: #1f1500; border-color: #EF9F27; }
-  .card.done    { background: #051a05; border-color: #4ade80; }
-  .card.on-hold { background: #12151a; border-color: #374151; }
-  .card.has-request { border-color: #a78bfa !important; }
-  .card.andon-line    { animation: pulse-amber 1s ease-in-out infinite; }
-  .card.andon-manager { animation: pulse-red   1s ease-in-out infinite; }
-  @keyframes pulse-amber { 0%,100%{background:#1f1500;border-color:#EF9F27}50%{background:#2d2000;border-color:#f97316} }
-  @keyframes pulse-red   { 0%,100%{background:#1a0505;border-color:#C8102E}50%{background:#2d0808;border-color:#f87171} }
-
-  .light { width: 10px; height: 10px; border-radius: 50%; margin: 0 auto 8px; background: #374151; }
-  .card.running .light { background: #EF9F27; }
-  .card.done    .light { background: #4ade80; }
-  .card.andon-line    .light { background: #EF9F27; }
-  .card.andon-manager .light { background: #C8102E; }
-
-  .card-name   { font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.04em; }
-  .card-status { font-size: 10px; color: #6b7280; min-height: 13px; }
-  .card.done    .card-status { color: #4ade80; }
-  .card.on-hold .card-status { color: #4b5563; }
-  .card-active-time { font-size: 10px; color: #374151; min-height: 12px; margin-top: 2px; }
-  .card.running .card-active-time { color: #92400e; }
-
-  .andon-badge { margin-top: 6px; padding: 3px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
-  .andon-badge.line    { background: #2d2000; color: #EF9F27; }
-  .andon-badge.manager { background: #2d0808; color: #f87171; }
-
-  .card-request { margin-top: 6px; padding: 4px 6px; border-radius: 4px; background: #1e1535; border: 1px solid #6d28d9; font-size: 10px; color: #a78bfa; text-align: left; display: flex; align-items: flex-start; gap: 4px; }
-  .card-request .req-text { flex: 1; word-break: break-word; }
-  .dismiss-btn { background: none; border: none; color: #6d28d9; cursor: pointer; font-size: 12px; line-height: 1; padding: 0; flex-shrink: 0; }
-  .dismiss-btn:hover { color: #C8102E; }
-  .req-count { font-size: 9px; color: #6d28d9; margin-top: 2px; }
-
-  /* ── Feed panel ── */
-  .feed-panel { background: #12151a; border: 1px solid #2d3340; border-top: 3px solid #C8102E; border-radius: 6px; padding: 14px; position: sticky; top: 0; }
-  .feed-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .feed-title  { font-size: 11px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.1em; }
-  .feed-badge  { background: #C8102E; color: #fff; font-size: 10px; font-weight: 800; border-radius: 3px; padding: 2px 8px; min-width: 22px; text-align: center; }
-  .feed-empty  { font-size: 12px; color: #4b5563; text-align: center; padding: 20px 0; text-transform: uppercase; letter-spacing: 0.08em; }
-  .feed-section-title { font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #4b5563; margin: 10px 0 6px; }
-  .feed-item { border-radius: 4px; padding: 8px 10px; margin-bottom: 6px; }
-  .feed-item.inv     { background: #1e1535; border: 1px solid #4c1d95; }
-  .feed-item.andon-l { background: #1f1500; border: 1px solid #92400e; }
-  .feed-item.andon-m { background: #1a0505; border: 1px solid #7f1d1d; }
-  .feed-item.hold    { background: #111827; border: 1px solid #374151; }
-  .feed-item-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
-  .feed-station { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
-  .feed-station.inv     { color: #a78bfa; }
-  .feed-station.andon-l { color: #EF9F27; }
-  .feed-station.andon-m { color: #f87171; }
-  .feed-station.hold    { color: #6b7280; }
-  .feed-time    { font-size: 9px; color: #4b5563; }
-  .feed-msg     { font-size: 12px; color: #d1d5db; word-break: break-word; }
-  .feed-dismiss { background: none; border: none; color: #4b5563; cursor: pointer; font-size: 11px; margin-top: 4px; padding: 0; text-transform: uppercase; letter-spacing: 0.06em; }
-  .feed-dismiss:hover { color: #C8102E; }
-
-  /* ── Mgmt panel ── */
-  .mgmt-panel { }
-  .mgmt-grid  { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 24px; }
-  .mgmt-card  { background: #12151a; border: 1px solid #2d3340; border-radius: 6px; padding: 14px; }
-  .mgmt-card.active  { border-top: 3px solid #4ade80; }
-  .mgmt-card.on-hold { border-top: 3px solid #374151; }
-  .mgmt-card.done    { border-top: 3px solid #C8102E; }
-  .mgmt-top   { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-  .mgmt-name  { font-size: 12px; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.04em; }
-  .mgmt-badge { font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
-  .mgmt-badge.active  { background: #052e16; color: #4ade80; }
-  .mgmt-badge.on-hold { background: #1f2937; color: #6b7280; }
-  .mgmt-badge.done    { background: #2d0808; color: #f87171; }
-  .mgmt-active-time  { font-size: 11px; color: #4b5563; margin-bottom: 8px; }
-  .mgmt-active-time span { color: #4ade80; font-weight: 700; }
-  .mgmt-hold-reason  { font-size: 11px; color: #6b7280; margin-bottom: 8px; font-style: italic; }
-  .mgmt-actions { display: flex; flex-direction: column; gap: 5px; }
-  .mgmt-btn { padding: 7px 10px; border-radius: 4px; font-size: 11px; font-weight: 800; cursor: pointer; border: none; width: 100%; text-transform: uppercase; letter-spacing: 0.06em; }
-  .mgmt-btn-activate { background: #052e16; color: #4ade80; border: 1px solid #166534; }
-  .mgmt-btn-activate:hover { background: #0a3d1f; }
-  .mgmt-btn-hold     { background: #1f2937; color: #9ca3af; border: 1px solid #374151; }
-  .mgmt-btn-hold:hover { background: #374151; color: #fff; }
-  .mgmt-btn:disabled { opacity: 0.3; cursor: default; }
-  .hold-reason-select { width: 100%; background: #1f2937; border: 1px solid #374151; border-radius: 4px; color: #9ca3af; font-size: 11px; padding: 6px 8px; margin-bottom: 5px; outline: none; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #1a1e24; color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+.header { background: #12151a; border-bottom: 3px solid #C8102E; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+.brand-icon { width: 32px; height: 32px; background: #C8102E; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; color: #fff; flex-shrink: 0; }
+.brand-text .top { font-size: 9px; font-weight: 700; color: #C8102E; letter-spacing: 0.15em; text-transform: uppercase; }
+.brand-text .btm { font-size: 15px; font-weight: 800; color: #fff; letter-spacing: 0.06em; text-transform: uppercase; }
+.line-select { margin-left: auto; background: #1f2937; border: 1.5px solid #C8102E; border-radius: 4px; color: #fff; font-size: 13px; font-weight: 800; padding: 6px 12px; outline: none; cursor: pointer; text-transform: uppercase; letter-spacing: 0.06em; }
+.conn-status { display: none; width: 100%; background: #7f1d1d; border-bottom: 2px solid #C8102E; padding: 10px 20px; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fca5a5; text-transform: uppercase; letter-spacing: 0.08em; }
+.page { padding: 20px; max-width: 440px; margin: 0 auto; }
+.sec { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #6b7280; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+.sec::after { content: ''; flex: 1; height: 1px; background: #2d3340; }
+.card { background: #12151a; border: 1px solid #2d3340; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
+.inv-loading { font-size: 13px; color: #6b7280; padding: 6px 0; text-align: center; text-transform: uppercase; letter-spacing: 0.06em; }
+input[type=text], input[type=number] { width: 100%; background: #1f2937; border: 1.5px solid #374151; border-radius: 6px; color: #fff; font-size: 14px; font-weight: 600; padding: 11px 14px; outline: none; margin-bottom: 12px; }
+input:focus { border-color: #C8102E; }
+input::placeholder { color: #4b5563; }
+.stock-info { font-size: 13px; margin-bottom: 12px; padding: 10px 14px; border-radius: 6px; font-weight: 600; }
+.stock-ok   { color: #4ade80; background: #052e16; border: 1px solid #166534; }
+.stock-warn { color: #f87171; background: #2d0a0a; border: 1px solid #7f1d1d; }
+.stock-none { color: #9ca3af; background: #1f2937; border: 1px solid #374151; }
+.stock-out  { color: #f87171; background: #2d0808; border: 1px solid #7f1d1d; }
+.qty-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.qty-label { font-size: 12px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; }
+.qty-input { flex: 1; margin-bottom: 0; }
+.pri-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #6b7280; margin-bottom: 8px; }
+.pri-row { display: flex; gap: 8px; margin-bottom: 14px; }
+.pri-btn { flex: 1; padding: 9px 4px; border-radius: 4px; border: 1.5px solid #374151; background: #1f2937; color: #6b7280; font-size: 12px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.06em; transition: all 0.15s; }
+.pri-btn.sel-low    { background: #1f2937; border-color: #6b7280; color: #d1d5db; }
+.pri-btn.sel-medium { background: #2d1f00; border-color: #EF9F27; color: #EF9F27; }
+.pri-btn.sel-high   { background: #2d0808; border-color: #C8102E; color: #f87171; }
+.unit-select { background: #1f2937; border: 1.5px solid #374151; border-radius: 6px; color: #fff; font-size: 13px; font-weight: 700; padding: 9px 10px; outline: none; margin-left: 8px; cursor: pointer; }
+.unit-select:focus { border-color: #C8102E; }
+.req-queue-pos { font-size: 10px; font-weight: 800; color: #EF9F27; letter-spacing: 0.08em; text-transform: uppercase; margin-right: 8px; }
+.req-elapsed   { font-size: 11px; font-weight: 700; color: #9ca3af; margin-left: 6px; }
+.search-input { width: 100%; background: #1f2937; border: 1.5px solid #374151; border-radius: 6px; color: #fff; font-size: 14px; padding: 10px 14px; outline: none; margin-bottom: 8px; }
+.search-input:focus { border-color: #C8102E; }
+.search-input::placeholder { color: #4b5563; }
+.parts-list { max-height: 240px; overflow-y: auto; border: 1.5px solid #374151; border-radius: 6px; background: #1f2937; margin-bottom: 12px; }
+.part-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #2d3340; font-size: 13px; color: #d1d5db; }
+.part-item:last-child { border-bottom: none; }
+.part-item:hover { background: #374151; color: #fff; }
+.part-item .pn { font-weight: 800; color: #C8102E; font-size: 11px; letter-spacing: 0.06em; }
+.part-item .pa { font-size: 12px; color: #9ca3af; margin-top: 1px; }
+.part-item .out-tag { font-size: 10px; color: #f87171; font-weight: 700; letter-spacing: 0.06em; margin-top: 3px; }
+.part-item .line-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+.part-item .ltag { font-size: 10px; color: #a78bfa; background: #1e1535; border: 1px solid #4c1d95; border-radius: 3px; padding: 1px 6px; }
+.not-found { padding: 14px; text-align: center; }
+.not-found-icon { font-size: 22px; margin-bottom: 6px; }
+.not-found-msg  { font-size: 13px; font-weight: 700; color: #9ca3af; }
+.not-found-sub  { font-size: 11px; color: #4b5563; margin-top: 4px; }
+.selected-bar { margin-bottom: 12px; padding: 10px 14px; background: #12151a; border: 1.5px solid #C8102E; border-radius: 6px; }
+.selected-bar-lbl  { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+.selected-bar-text { font-size: 13px; font-weight: 700; color: #fff; }
+.selected-bar-clear { float: right; background: none; border: none; color: #6b7280; cursor: pointer; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+.selected-bar-clear:hover { color: #f87171; }
+.assigned-lines-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.ltag-purple { font-size: 10px; color: #a78bfa; background: #1e1535; border: 1px solid #4c1d95; border-radius: 3px; padding: 2px 8px; }
+.deliver-sel { width: 100%; background: #1f2937; border: 1.5px solid #374151; border-radius: 6px; color: #fff; font-size: 14px; font-weight: 600; padding: 11px 14px; outline: none; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; background-color: #1f2937; margin-bottom: 14px; }
+.deliver-sel:focus { border-color: #C8102E; }
+.deliver-sel.err  { border-color: #C8102E; }
+.deliver-sel option { background: #1f2937; }
+.btn { width: 100%; padding: 13px; border-radius: 6px; border: none; font-size: 13px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; transition: background 0.15s; margin-bottom: 8px; }
+.btn-red  { background: #C8102E; color: #fff; } .btn-red:hover { background: #a00d24; }
+.btn-red:disabled { opacity: 0.35; cursor: default; }
+.flash { border-radius: 6px; padding: 11px; text-align: center; font-size: 13px; font-weight: 800; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.08em; display: none; }
+.flash-green { background: #052e16; border: 1px solid #166534; color: #4ade80; }
+.flash-red   { background: #2d0808; border: 1px solid #7f1d1d; color: #f87171; }
+.req-item { background: #12151a; border: 1px solid #2d3340; border-left: 3px solid #C8102E; border-radius: 6px; padding: 10px 14px; margin-bottom: 6px; display: flex; align-items: flex-start; gap: 10px; }
+.req-content { flex: 1; }
+.req-text { font-size: 13px; font-weight: 600; color: #fff; word-break: break-word; }
+.req-meta { font-size: 10px; color: #4b5563; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+.req-cancel { background: none; border: 1px solid #374151; border-radius: 4px; color: #6b7280; cursor: pointer; font-size: 10px; font-weight: 700; padding: 3px 8px; flex-shrink: 0; text-transform: uppercase; }
+.req-cancel:hover { border-color: #C8102E; color: #f87171; }
 </style>
 </head>
 <body>
-
-<!-- Header -->
 <div class="header">
-  <div class="header-left">
-    <div class="brand-icon">L</div>
-    <div class="brand-text">
-      <div class="top">Langmuir Systems</div>
-      <div class="btm">Production Board</div>
-    </div>
+  <div class="brand-icon">L</div>
+  <div class="brand-text">
+    <div class="top">Langmuir Systems</div>
+    <div class="btm" id="page-title">Inventory Request</div>
   </div>
-  <div class="header-mid">
-    <div class="takt-pill">
-      <div class="takt-label">Takt Time</div>
-      <div class="takt-time" id="timer">3:00:00</div>
-    </div>
-  </div>
-  <div class="header-right">
-    <div class="datetime">
-      <div class="date"  id="date-display"></div>
-      <div class="clock" id="clock-display"></div>
-    </div>
-  </div>
+  <select class="line-select" id="line-switcher">
+    <option value="Apollo">Apollo</option>
+    <option value="XF/PRO">XF/PRO</option>
+    <option value="TITAN">Titan</option>
+    <option value="VULCAN">Vulcan</option>
+    <option value="XR">XR</option>
+    <option value="MR1">MR1</option>
+    <option value="Shipping">Shipping</option>
+    <option value="Unassigned">⚠ Unassigned</option>
+  </select>
 </div>
+<div class="conn-status" id="conn-status">Connection lost — reconnecting...</div>
 
-<div class="conn-status" id="conn-status">⚠ Connection lost — reconnecting...</div>
-
-<!-- Break banner -->
-<div class="break-banner" id="break-banner">
-  <div class="banner-icon" id="banner-icon">☕</div>
-  <div>
-    <div class="banner-title" id="banner-title">Morning Break</div>
-    <div class="banner-sub"   id="banner-sub">Timer paused — auto-resumes when break ends</div>
-  </div>
-  <div class="banner-timer" id="banner-timer"></div>
-</div>
-
-<!-- Controls -->
-<div class="controls">
-  <div class="ctrl-left">
-    <button class="btn btn-start" id="main-btn"  onclick="handleBtn()">Start Takt</button>
-    <button class="btn btn-pause" id="pause-btn" onclick="handlePause()" style="display:none">⏸ Pause</button>
-  </div>
-  <div class="cycle-info">Cycles Today<span id="cycle-count">0</span></div>
-</div>
-
-<!-- Tabs -->
-<div class="tab-bar">
-  <button class="tab active" onclick="showTab('board')">Production Board</button>
-  <button class="tab"        onclick="showTab('mgmt')">Station Management</button>
-</div>
-
-<!-- Board view -->
-<div class="page" id="tab-board">
-  <div class="main-layout">
-    <div class="stations-col">
-      <div class="section-label">Main Line</div>
-      <div class="grid grid-main" id="main-grid"></div>
-      <div class="section-label">Subassembly</div>
-      <div class="grid grid-sub"  id="sub-grid"></div>
-    </div>
-    <div class="feed-col">
-      <div class="feed-panel">
-        <div class="feed-header">
-          <div class="feed-title">Live Alerts</div>
-          <div class="feed-badge" id="feed-badge">0</div>
-        </div>
-        <div id="feed-list"><div class="feed-empty">— Clear —</div></div>
+<!-- ── Normal line view ── -->
+<div id="view-line" class="page">
+  <div class="sec">Request a part</div>
+  <div class="card">
+    <div id="inv-loading" class="inv-loading">Loading inventory...</div>
+    <div id="inv-form" style="display:none">
+      <input class="search-input" id="part-search" type="text" placeholder="Search part # or description..." autocomplete="off"/>
+      <div class="parts-list" id="parts-list"></div>
+      <div class="selected-bar" id="selected-bar" style="display:none">
+        <div class="selected-bar-lbl">Selected <button class="selected-bar-clear" onclick="clearSelected()">✕ Clear</button></div>
+        <div class="selected-bar-text" id="selected-bar-text"></div>
       </div>
+      <div id="stock-info" style="display:none" class="stock-info"></div>
+      <div class="qty-row">
+        <span class="qty-label">Qty</span>
+        <input class="qty-input" id="qty-input" type="number" inputmode="numeric" min="1" value="1"/>
+        <select class="unit-select" id="unit-select">
+          <option value="Part" selected>Part</option>
+          <option value="Box">Box</option>
+          <option value="Pallet">Pallet</option>
+        </select>
+      </div>
+      <div class="pri-label">Priority</div>
+      <div class="pri-row" id="pri-row">
+        <button class="pri-btn sel-low" data-level="low">Low</button>
+        <button class="pri-btn" data-level="medium">Medium</button>
+        <button class="pri-btn" data-level="high">High</button>
+      </div>
+      <div class="flash flash-green" id="sent-flash">Request Sent!</div>
+      <button class="btn btn-red" id="send-btn" disabled>Send Request</button>
     </div>
   </div>
+  <div class="sec">Active requests</div>
+  <div id="req-list"></div>
 </div>
 
-<!-- Mgmt view -->
-<div class="page" id="tab-mgmt" style="display:none">
-  <div class="section-label">Main Line</div>
-  <div class="mgmt-grid" id="mgmt-main"></div>
-  <div class="section-label">Subassembly</div>
-  <div class="mgmt-grid" id="mgmt-sub"></div>
+<!-- ── Unassigned view ── -->
+<div id="view-orphan" class="page" style="display:none">
+  <div class="sec">Unassigned parts</div>
+  <div class="card">
+    <input class="search-input" id="orphan-search" type="text" placeholder="Search part # or description..." autocomplete="off"/>
+    <div class="parts-list" id="orphan-list"></div>
+    <div class="selected-bar" id="orphan-sel-bar" style="display:none">
+      <div class="selected-bar-lbl">Selected <button class="selected-bar-clear" onclick="oClear()">✕ Clear</button></div>
+      <div class="selected-bar-text" id="orphan-sel-text"></div>
+      <div class="assigned-lines-row" id="orphan-sel-lines"></div>
+    </div>
+    <div id="orphan-stock" style="display:none" class="stock-info"></div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#6b7280;margin-bottom:8px;">Deliver to line:</div>
+    <select class="deliver-sel" id="orphan-line-sel">
+      <option value="">— Select line —</option>
+      <option value="Apollo">Apollo</option>
+      <option value="XF/PRO">XF/PRO</option>
+      <option value="TITAN">Titan</option>
+      <option value="VULCAN">Vulcan</option>
+      <option value="XR">XR</option>
+      <option value="MR1">MR1</option>
+      <option value="Shipping">Shipping</option>
+    </select>
+    <div class="qty-row">
+      <span class="qty-label">Qty</span>
+      <input class="qty-input" id="orphan-qty" type="number" inputmode="numeric" min="1" value="1"/>
+      <select class="unit-select" id="orphan-unit-select">
+        <option value="Part" selected>Part</option>
+        <option value="Box">Box</option>
+        <option value="Pallet">Pallet</option>
+      </select>
+    </div>
+    <div class="pri-label">Priority</div>
+    <div class="pri-row" id="orphan-pri-row">
+      <button class="pri-btn sel-low" data-level="low">Low</button>
+      <button class="pri-btn" data-level="medium">Medium</button>
+      <button class="pri-btn" data-level="high">High</button>
+    </div>
+    <div class="flash flash-green" id="orphan-sent-flash">Request Sent!</div>
+    <div class="flash flash-red"   id="orphan-err-flash"></div>
+    <button class="btn btn-red" id="orphan-send-btn" disabled>Send Request</button>
+  </div>
+  <div class="sec">Active requests</div>
+  <div id="orphan-req-list"></div>
 </div>
 
 <script>
-let state = null, taktSec = 10800, timerInt = null;
-let holdReasons = ['No operator assigned','No frame/material at station','Secured (end of day)','Waiting for previous station'];
-let lastPong = Date.now();
+// ── Globals ───────────────────────────────────────────────────
+var params   = new URLSearchParams(location.search);
+var lineName = decodeURIComponent(params.get('line') || 'Apollo');
+var myReqs   = [];
+var lastPong = Date.now();
+var allItems = [];
+var orphanItems = [];
+var selectedPart   = null;
+var selectedOrphan = null;
+var priority  = 'low';
+var oPriority = 'low';
 
-const ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host);
+// ── Line switcher ─────────────────────────────────────────────
+var sw = document.getElementById('line-switcher');
+sw.value = lineName;
+if (!sw.value) { sw.value = 'Apollo'; lineName = 'Apollo'; }
+else lineName = sw.value;
+document.title = lineName + ' — Inventory';
+document.getElementById('page-title').textContent = lineName === 'Unassigned' ? 'Unassigned Parts' : 'Inventory Request';
+sw.addEventListener('change', function() {
+  var url = new URL(location.href);
+  url.searchParams.set('line', sw.value);
+  location.href = url.toString();
+});
+
+if (lineName === 'Unassigned') {
+  document.getElementById('view-line').style.display   = 'none';
+  document.getElementById('view-orphan').style.display = 'block';
+} else {
+  document.getElementById('view-line').style.display   = 'block';
+  document.getElementById('view-orphan').style.display = 'none';
+}
+
+// ── WebSocket ─────────────────────────────────────────────────
+var ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'?line='+encodeURIComponent(lineName));
 ws.onopen  = function() { document.getElementById('conn-status').style.display = 'none'; };
 ws.onclose = function() { document.getElementById('conn-status').style.display = 'flex'; setTimeout(function(){ location.reload(); }, 3000); };
 ws.onerror = function() { document.getElementById('conn-status').style.display = 'flex'; };
-ws.onmessage = e => { lastPong = Date.now(); applyMsg(JSON.parse(e.data)); };
+ws.onmessage = function(ev) {
+  lastPong = Date.now();
+  var msg = JSON.parse(ev.data);
+  if (msg.type === 'requests') {
+    myReqs = (msg.requests || []).filter(function(r) {
+      if (lineName === 'Unassigned') return !r.line || r.line === 'Unassigned';
+      return r.line === lineName;
+    });
+    renderReqList();
+  }
+};
+setInterval(function(){ if (ws.readyState===1) ws.send(JSON.stringify({type:'ping'})); }, 25000);
+setInterval(function(){ if (Date.now()-lastPong>35000) location.reload(); }, 5000);
+setInterval(function(){
+  fetch('/api/requests').then(function(r){return r.json();}).then(function(d){
+    myReqs=(d.requests||[]).filter(function(r){
+      if (lineName==='Unassigned') return !r.line||r.line==='Unassigned';
+      return r.line===lineName;
+    }); renderReqList();
+  }).catch(function(){});
+}, 3000);
 
-setInterval(function() { if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'ping' })); }, 25000);
-setInterval(function() { if (Date.now() - lastPong > 35000) location.reload(); }, 5000);
+// ── Load inventory ────────────────────────────────────────────
+function loadInventory() {
+  if (lineName === 'Unassigned') { loadOrphans(); return; }
+  fetch('/api/inventory').then(function(r){ return r.json(); }).then(function(d) {
+    if (!d.success) { document.getElementById('inv-loading').textContent = 'Error: '+(d.error||'unknown'); return; }
+    window._locations = d.locations || [];
+    var inv       = d.inventory || {};
+    var lineUpper = lineName.toUpperCase();
+    var isApollo   = lineUpper === 'APOLLO';
+    var isShipping = lineUpper === 'SHIPPING';
 
-setInterval(async () => {
-  try { const d = await (await fetch('/api/state')).json(); state = d.state; taktSec = d.taktSeconds; if (d.holdReasons) holdReasons = d.holdReasons; render(); } catch {}
-}, 2000);
+    // Shipping: show every part that has a warehouse location, regardless of
+    // BOM. The shipping area handles individual SKUs and warranty parts across
+    // the whole warehouse, so it's not filtered by any line's BOM.
+    if (isShipping) {
+      var seen = {};
+      allItems = [];
+      (d.locations || []).forEach(function(l) {
+        var pn = String(l.partNum || '').trim();
+        if (!pn) return;
+        var key = pn.toLowerCase();
+        if (seen[key]) return;
+        seen[key] = true;
+        allItems.push({ partNum: pn, partName: String(l.partName || '') });
+      });
+      // Sort by part number for a stable list
+      allItems.sort(function(a, b) {
+        return a.partNum.localeCompare(b.partNum, undefined, { numeric: true, sensitivity: 'base' });
+      });
+      document.getElementById('inv-loading').style.display = 'none';
+      document.getElementById('inv-form').style.display    = '';
+      renderParts('');
+      return;
+    }
 
-function applyMsg(msg) {
-  if (msg.type === 'start') { state = { running: true, startTime: msg.startTime, cycleCount: msg.cycleCount, stations: msg.stations, paused: false, pauseLabel: null, pauseStart: null, totalPausedMs: 0 }; taktSec = msg.taktSeconds; if (msg.holdReasons) holdReasons = msg.holdReasons; }
-  if (msg.type === 'state') { state = msg.state; taktSec = msg.taktSeconds; if (msg.holdReasons) holdReasons = msg.holdReasons; }
-  render();
+    // Find the correct inventory groups for this line
+    var lineGroups;
+    if (isApollo) {
+      // Apollo splits by station — find groups whose items have line === 'APOLLO'
+      lineGroups = Object.keys(inv).filter(function(grp) {
+        var items = inv[grp] || [];
+        return items.length > 0 && String(items[0].line || '').toUpperCase() === 'APOLLO';
+      });
+    } else {
+      lineGroups = Object.keys(inv).filter(function(grp) {
+        return grp.toUpperCase() === lineUpper;
+      });
+    }
+
+    // Collect in-stock parts (have locations)
+    var inStock = {};
+    var inStockItems = [];
+    lineGroups.forEach(function(grp) {
+      (inv[grp] || []).forEach(function(item) {
+        var key = item.partNum.toLowerCase();
+        if (inStock[key]) return;
+        inStock[key] = true;
+        inStockItems.push(item);
+      });
+    });
+
+    // Collect all BOM parts for this line — including those with no locations
+    var bomForLine = {};
+    lineGroups.forEach(function(grp) {
+      (inv[grp] || []).forEach(function(item) {
+        var key = item.partNum.toLowerCase();
+        if (!bomForLine[key]) bomForLine[key] = { partNum: item.partNum, partName: item.partName };
+      });
+    });
+
+    // Build allItems — in-stock first, then out-of-stock BOM parts
+    allItems = inStockItems.slice();
+    Object.keys(bomForLine).forEach(function(pnKey) {
+      if (inStock[pnKey]) return;
+      var p = bomForLine[pnKey];
+      allItems.push({ partNum: p.partNum, partName: p.partName, outOfStock: true });
+    });
+
+    document.getElementById('inv-loading').style.display = 'none';
+    document.getElementById('inv-form').style.display    = '';
+    renderParts('');
+  }).catch(function(e){
+    document.getElementById('inv-loading').textContent = 'Failed: '+e.message;
+    document.getElementById('inv-form').style.display  = '';
+  });
 }
 
-function updateClock() {
-  const now = new Date();
-  document.getElementById('date-display').textContent = now.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
-  document.getElementById('clock-display').textContent = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+function loadOrphans() {
+  fetch('/api/orphans').then(function(r){ return r.json(); }).then(function(d) {
+    if (!d.success) return;
+    orphanItems = d.orphanParts || [];
+    fetch('/api/inventory').then(function(r2){ return r2.json(); }).then(function(d2){
+      if (d2.success) window._locations = d2.locations || [];
+    }).catch(function(){});
+  }).catch(function(){});
 }
-updateClock(); setInterval(updateClock, 1000);
+loadInventory();
 
-function showTab(tab) {
-  document.getElementById('tab-board').style.display = tab === 'board' ? 'block' : 'none';
-  document.getElementById('tab-mgmt').style.display  = tab === 'mgmt'  ? 'block' : 'none';
-  document.querySelectorAll('.tab').forEach((t,i) => t.className = 'tab' + (['board','mgmt'][i] === tab ? ' active' : ''));
+// ── Priority buttons ──────────────────────────────────────────
+document.querySelectorAll('#pri-row .pri-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    priority = this.getAttribute('data-level');
+    document.querySelectorAll('#pri-row .pri-btn').forEach(function(b) {
+      b.className = 'pri-btn' + (b.getAttribute('data-level') === priority ? ' sel-' + priority : '');
+    });
+  });
+});
+
+// ── Parts list ────────────────────────────────────────────────
+function renderParts(q) {
+  var list = document.getElementById('parts-list');
+  if (selectedPart || !q) { list.innerHTML = ''; return; }
+  var filtered = allItems.filter(function(i){
+    return String(i.partNum||'').toLowerCase().includes(q.toLowerCase()) ||
+           String(i.partName||'').toLowerCase().includes(q.toLowerCase());
+  });
+  if (!filtered.length) {
+    list.innerHTML = '<div class="not-found"><div class="not-found-icon">🔍</div><div class="not-found-msg">Part not found</div><div class="not-found-sub">This part is not in the inventory tracker for '+esc(lineName)+'</div></div>';
+    return;
+  }
+  list.innerHTML = filtered.slice(0,40).map(function(i){
+    var pn = String(i.partNum||''), pa = String(i.partName||'');
+    var outTag = i.outOfStock ? '<div class="out-tag">OUT OF STOCK</div>' : '';
+    return '<div class="part-item" onclick="selectPart(\''+esc(pn)+'\',\''+esc(pa)+'\','+!!i.outOfStock+')">'
+      +'<div class="pn">'+esc(pn)+'</div><div class="pa">'+esc(pa)+'</div>'+outTag+'</div>';
+  }).join('');
+}
+document.getElementById('part-search').addEventListener('input', function(){ renderParts(this.value); });
+
+function selectPart(pn, pa, isOut) {
+  selectedPart = { partNum: pn, partName: pa, outOfStock: !!isOut };
+  document.getElementById('part-search').value = '';
+  document.getElementById('parts-list').innerHTML = '';
+  document.getElementById('selected-bar').style.display = 'block';
+  document.getElementById('selected-bar-text').textContent = pn + ' — ' + pa;
+  document.getElementById('send-btn').disabled = false;
+  showStock();
 }
 
-function handleBtn()   { if (!state?.running) ws.send(JSON.stringify({type:'start'})); else ws.send(JSON.stringify({type:'end'})); }
-function handlePause() { ws.send(JSON.stringify({type:'pause'})); }
-function dismissReq(stationId, reqId) { ws.send(JSON.stringify({type:'dismiss', stationId, reqId})); }
-function boardActivateStation(id) { ws.send(JSON.stringify({type:'station-start', stationId:id})); }
-function boardHoldStation(id) { const sel = document.getElementById('hold-sel-'+id); ws.send(JSON.stringify({type:'station-hold', stationId:id, reason: sel ? sel.value : holdReasons[0]})); }
+function clearSelected() {
+  selectedPart = null;
+  document.getElementById('selected-bar').style.display = 'none';
+  document.getElementById('stock-info').style.display   = 'none';
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('part-search').value = '';
+  document.getElementById('parts-list').innerHTML = '';
+}
 
-function liveActiveMs(st) { let ms = st.activeMs||0; if (st.stationStatus==='active'&&st.stationStartTime) ms += Date.now()-st.stationStartTime; return ms; }
-
-function render() {
-  if (!state) return;
-  clearInterval(timerInt);
-  const mainBtn = document.getElementById('main-btn'), pauseBtn = document.getElementById('pause-btn');
-  if (state.running) {
-    mainBtn.textContent = 'End Cycle'; mainBtn.className = 'btn btn-end';
-    pauseBtn.style.display = '';
-    pauseBtn.textContent = state.paused ? '▶ Resume' : '⏸ Pause';
-    pauseBtn.className   = state.paused ? 'btn btn-resume' : 'btn btn-pause';
-    timerInt = setInterval(tick, 500); tick();
+function showStock() {
+  var sEl = document.getElementById('stock-info');
+  if (!selectedPart) { sEl.style.display='none'; return; }
+  var qty  = Math.max(1, parseInt(document.getElementById('qty-input').value)||1);
+  var locs = (window._locations||[]).filter(function(l){
+    return String(l.partNum||'').toLowerCase() === selectedPart.partNum.toLowerCase();
+  });
+  var total = locs.reduce(function(s,l){ return s+(parseInt(l.quantity)||0); }, 0);
+  if (!locs.length || total === 0) {
+    sEl.style.display=''; sEl.className='stock-info stock-out';
+    sEl.innerHTML='⚠ Out of Stock — <strong>0</strong> available. Sending will escalate to warehouse.';
+  } else if (total < qty) {
+    sEl.style.display=''; sEl.className='stock-info stock-warn';
+    sEl.innerHTML='Low Stock: <strong>'+total+'</strong> available';
   } else {
-    mainBtn.textContent = 'Start Takt'; mainBtn.className = 'btn btn-start';
-    pauseBtn.style.display = 'none';
-    const el = document.getElementById('timer'); el.textContent = fmt(taktSec); el.className = 'takt-time';
+    sEl.style.display=''; sEl.className='stock-info stock-ok';
+    sEl.innerHTML='In Stock: <strong>'+total+'</strong> available';
   }
-  document.getElementById('cycle-count').textContent = state.cycleCount;
-  renderBanner();
-  renderGrid('main-grid', state.stations.filter(s => s.type==='main'));
-  renderGrid('sub-grid',  state.stations.filter(s => s.type==='sub'));
-  renderFeed(state.stations);
-  renderMgmt('mgmt-main', state.stations.filter(s => s.type==='main'));
-  renderMgmt('mgmt-sub',  state.stations.filter(s => s.type==='sub'));
+}
+document.getElementById('qty-input').addEventListener('input', showStock);
+
+document.getElementById('send-btn').addEventListener('click', function() {
+  if (!selectedPart) return;
+  var locs  = (window._locations||[]).filter(function(l){
+    return String(l.partNum||'').toLowerCase() === selectedPart.partNum.toLowerCase();
+  });
+  var total = locs.reduce(function(s,l){ return s+(parseInt(l.quantity)||0); }, 0);
+  var isOut = !locs.length || total === 0;
+  var qty   = isOut ? 0 : Math.max(1, parseInt(document.getElementById('qty-input').value)||1);
+  var unit  = document.getElementById('unit-select').value || 'Part';
+  ws.send(JSON.stringify({
+    type:     'request',
+    line:     lineName,
+    partNum:  selectedPart.partNum,
+    partName: selectedPart.partName,
+    text:     selectedPart.partNum + ' — ' + selectedPart.partName,
+    qty:      qty,
+    unit:     unit,
+    priority: isOut ? 'high' : priority,
+  }));
+  clearSelected();
+  document.getElementById('qty-input').value = '1';
+  document.getElementById('unit-select').value = 'Part';
+  showFlash('sent-flash', isOut ? '⚠ Escalation Sent!' : null);
+});
+
+// ── Orphan view ───────────────────────────────────────────────
+document.querySelectorAll('#orphan-pri-row .pri-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    oPriority = this.getAttribute('data-level');
+    document.querySelectorAll('#orphan-pri-row .pri-btn').forEach(function(b) {
+      b.className = 'pri-btn' + (b.getAttribute('data-level') === oPriority ? ' sel-' + oPriority : '');
+    });
+  });
+});
+
+document.getElementById('orphan-search').addEventListener('input', function() {
+  var q = this.value;
+  var list = document.getElementById('orphan-list');
+  if (selectedOrphan || !q) { list.innerHTML=''; return; }
+  var filtered = orphanItems.filter(function(i){
+    return String(i.partNum||'').toLowerCase().includes(q.toLowerCase()) ||
+           String(i.partName||'').toLowerCase().includes(q.toLowerCase());
+  });
+  if (!filtered.length) {
+    list.innerHTML='<div class="not-found"><div class="not-found-icon">🔍</div><div class="not-found-msg">Part not found</div><div class="not-found-sub">No unassigned parts match your search</div></div>';
+    return;
+  }
+  list.innerHTML = filtered.slice(0,40).map(function(i){
+    var pn=String(i.partNum||''), pa=String(i.partName||'');
+    var lines = Array.isArray(i.assignedLines) ? i.assignedLines : (i.assignedLine ? [i.assignedLine] : []);
+    var tags  = lines.map(function(l){ return '<span class="ltag">→ '+esc(l)+'</span>'; }).join('');
+    return '<div class="part-item" onclick="oSelect(\''+esc(pn)+'\',\''+esc(pa)+'\')">'
+      +'<div class="pn">'+esc(pn)+'</div><div class="pa">'+esc(pa)+'</div>'
+      +(tags ? '<div class="line-tags">'+tags+'</div>' : '')+'</div>';
+  }).join('');
+});
+
+function oSelect(pn, pa) {
+  var item = orphanItems.find(function(i){ return i.partNum===pn; });
+  selectedOrphan = { partNum:pn, partName:pa, assignedLines: item ? (Array.isArray(item.assignedLines) ? item.assignedLines : (item.assignedLine ? [item.assignedLine] : [])) : [] };
+  document.getElementById('orphan-search').value = '';
+  document.getElementById('orphan-list').innerHTML = '';
+  document.getElementById('orphan-sel-bar').style.display = 'block';
+  document.getElementById('orphan-sel-text').textContent  = pn + ' — ' + pa;
+  var linesHtml = selectedOrphan.assignedLines.length
+    ? selectedOrphan.assignedLines.map(function(l){ return '<span class="ltag-purple">→ '+esc(l)+'</span>'; }).join('')
+    : '<span style="font-size:10px;color:#4b5563;">Not yet assigned to any line</span>';
+  document.getElementById('orphan-sel-lines').innerHTML = linesHtml;
+  document.getElementById('orphan-line-sel').value = '';
+  document.getElementById('orphan-line-sel').classList.remove('err');
+  document.getElementById('orphan-qty').value = '1';
+  oPriority = 'low';
+  document.querySelectorAll('#orphan-pri-row .pri-btn').forEach(function(b){
+    b.className = 'pri-btn' + (b.getAttribute('data-level')==='low' ? ' sel-low' : '');
+  });
+  document.getElementById('orphan-send-btn').disabled = false;
+  oShowStock();
 }
 
-function renderBanner() {
-  const banner = document.getElementById('break-banner');
-  if (!state?.running || !state.paused) { banner.className = 'break-banner'; return; }
-  const label = state.pauseLabel || 'Paused', isLunch = label==='Lunch', isManual = label==='Paused';
-  banner.className = 'break-banner visible' + (isLunch ? ' lunch' : '');
-  document.getElementById('banner-icon').textContent  = isManual ? '⏸' : isLunch ? '🍽️' : '☕';
-  document.getElementById('banner-title').textContent = label;
-  document.getElementById('banner-sub').textContent   = isManual ? 'Timer paused manually' : 'Auto-resumes when break ends';
+function oClear() {
+  selectedOrphan = null;
+  document.getElementById('orphan-sel-bar').style.display = 'none';
+  document.getElementById('orphan-stock').style.display   = 'none';
+  document.getElementById('orphan-line-sel').value = '';
+  document.getElementById('orphan-line-sel').classList.remove('err');
+  document.getElementById('orphan-qty').value = '1';
+  document.getElementById('orphan-send-btn').disabled = true;
+  oPriority = 'low';
+  document.querySelectorAll('#orphan-pri-row .pri-btn').forEach(function(b){
+    b.className = 'pri-btn' + (b.getAttribute('data-level')==='low' ? ' sel-low' : '');
+  });
+  document.getElementById('orphan-search').value = '';
+  document.getElementById('orphan-list').innerHTML = '';
 }
 
-function renderGrid(id, stations) {
-  document.getElementById(id).innerHTML = stations.map(s => {
-    const isHold = s.stationStatus==='hold' && !s.done;
-    let cls = !state.running ? 'idle' : s.done ? 'done' : isHold ? 'on-hold' : 'running';
-    if (s.andon==='line-lead') cls += ' andon-line'; else if (s.andon==='floor-manager') cls += ' andon-manager'; else if (s.requests?.length) cls += ' has-request';
-    let statusStr = s.done ? fmtSec(s.completedAt) : !state.running ? '' : isHold ? (s.holdReason||'On Hold') : s.andon ? 'Andon Active' : 'Active';
-    const activeStr = state.running && !s.done ? fmtMs(liveActiveMs(s)) : '';
-    const andonHtml = s.andon ? `<div class="andon-badge ${s.andon==='line-lead'?'line':'manager'}">${s.andon==='line-lead'?'Line Lead':'Floor Mgr'}</div>` : '';
-    const reqs = s.requests||[], latest = reqs[reqs.length-1];
-    const reqHtml = latest ? `<div class="card-request"><span class="req-text">${esc(latest.text)}</span><button class="dismiss-btn" onclick="dismissReq(${s.id},${latest.id})">✕</button></div>${reqs.length>1?`<div class="req-count">+${reqs.length-1} more</div>`:''}` : '';
-    return `<div class="card ${cls}"><div class="light"></div><div class="card-name">${s.name}</div><div class="card-status">${statusStr}</div><div class="card-active-time">${activeStr}</div>${andonHtml}${reqHtml}</div>`;
+function oShowStock() {
+  var sEl = document.getElementById('orphan-stock');
+  if (!selectedOrphan) { sEl.style.display='none'; return; }
+  var qty  = Math.max(1, parseInt(document.getElementById('orphan-qty').value)||1);
+  var locs = (window._locations||[]).filter(function(l){ return String(l.partNum||'').toLowerCase()===selectedOrphan.partNum.toLowerCase(); });
+  if (locs.length) {
+    var total = locs.reduce(function(s,l){ return s+(parseInt(l.quantity)||0); },0);
+    sEl.style.display=''; sEl.className='stock-info '+(total<qty?'stock-warn':'stock-ok');
+    sEl.innerHTML=(total<qty?'Low Stock: ':'In Stock: ')+'<strong>'+total+'</strong> available';
+  } else { sEl.style.display=''; sEl.className='stock-info stock-none'; sEl.textContent='No warehouse location on file'; }
+}
+document.getElementById('orphan-qty').addEventListener('input', oShowStock);
+
+document.getElementById('orphan-send-btn').addEventListener('click', function() {
+  if (!selectedOrphan) return;
+  var line = document.getElementById('orphan-line-sel').value;
+  if (!line) {
+    document.getElementById('orphan-line-sel').classList.add('err');
+    showFlash('orphan-err-flash', 'Select a line before sending');
+    return;
+  }
+  document.getElementById('orphan-line-sel').classList.remove('err');
+  var qty  = Math.max(1, parseInt(document.getElementById('orphan-qty').value)||1);
+  var unit = document.getElementById('orphan-unit-select').value || 'Part';
+  ws.send(JSON.stringify({ type:'assign-orphan', partNum:selectedOrphan.partNum, partName:selectedOrphan.partName, line:line, station:'' }));
+  ws.send(JSON.stringify({ type:'request', line:line, partNum:selectedOrphan.partNum, partName:selectedOrphan.partName, text:selectedOrphan.partNum+' — '+selectedOrphan.partName, qty:qty, unit:unit, priority:oPriority }));
+  oClear();
+  showFlash('orphan-sent-flash');
+});
+
+// ── Shared helpers ────────────────────────────────────────────
+function showFlash(id, msg) {
+  var el = document.getElementById(id);
+  if (msg) el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(function(){ el.style.display='none'; }, 2500);
+}
+function cancelReq(id) { ws.send(JSON.stringify({type:'fulfill',reqId:id,qty:0})); }
+
+function fmtElapsed(submittedAt) {
+  if (!submittedAt) return '';
+  var sec = Math.max(0, Math.floor((Date.now() - submittedAt) / 1000));
+  var m = Math.floor(sec / 60), s = sec % 60;
+  if (m < 60) return m + 'm ' + s + 's';
+  var h = Math.floor(m / 60); m = m % 60;
+  return h + 'h ' + m + 'm';
+}
+function renderReqList() {
+  var listId = lineName==='Unassigned' ? 'orphan-req-list' : 'req-list';
+  var el = document.getElementById(listId); if (!el) return;
+  if (!myReqs.length) { el.innerHTML=''; return; }
+  el.innerHTML = myReqs.map(function(r){
+    var unit = r.unit && r.unit !== 'Part' ? ' ' + r.unit + (r.qty > 1 ? 's' : '') : '';
+    var qtyStr = (r.qty||1) + unit;
+    var posHtml = r.queuePosition ? '<span class="req-queue-pos">#'+r.queuePosition+' in queue</span>' : '';
+    var elapsedHtml = r.submittedAt ? '<span class="req-elapsed" data-submitted="'+r.submittedAt+'">'+fmtElapsed(r.submittedAt)+'</span>' : '';
+    return '<div class="req-item"><div class="req-content"><div class="req-text">'+posHtml+esc(r.text||(r.partNum+' — '+r.partName))+'</div>'
+      +'<div class="req-meta">Qty: '+qtyStr+' · '+(r.priority||'low')+' · '+r.time+elapsedHtml+'</div></div>'
+      +'<button class="req-cancel" onclick="cancelReq('+r.id+')">Cancel</button></div>';
   }).join('');
 }
-
-function renderMgmt(id, stations) {
-  document.getElementById(id).innerHTML = stations.map(s => {
-    const isHold = s.stationStatus==='hold'&&!s.done;
-    const badgeCls = s.done?'done':isHold?'on-hold':'active';
-    const badgeTxt = s.done?'Complete':isHold?'On Hold':'Active';
-    const canActivate = state.running&&!state.paused&&!s.done&&isHold;
-    const canHold     = state.running&&!s.done&&!isHold;
-    const reasonOpts  = holdReasons.map(r=>`<option value="${esc(r)}" ${s.holdReason===r?'selected':''}>${esc(r)}</option>`).join('');
-    return `<div class="mgmt-card ${badgeCls}">
-      <div class="mgmt-top"><div class="mgmt-name">${s.name}</div><div class="mgmt-badge ${badgeCls}">${badgeTxt}</div></div>
-      <div class="mgmt-active-time">Active: <span>${fmtMs(liveActiveMs(s))}</span></div>
-      ${isHold&&s.holdReason?`<div class="mgmt-hold-reason">${esc(s.holdReason)}</div>`:''}
-      <div class="mgmt-actions">
-        ${isHold?`<select class="hold-reason-select" id="hold-sel-${s.id}">${reasonOpts}</select>`:''}
-        <button class="mgmt-btn mgmt-btn-activate" onclick="boardActivateStation(${s.id})" ${canActivate?'':'disabled'}>▶ Set Active</button>
-        <button class="mgmt-btn mgmt-btn-hold"     onclick="boardHoldStation(${s.id})"     ${canHold?'':'disabled'}>⏸ Put On Hold</button>
-      </div></div>`;
-  }).join('');
-}
-
-function renderFeed(stations) {
-  const andons = stations.filter(s=>s.andon), holds = stations.filter(s=>s.stationStatus==='hold'&&!s.done&&state.running), reqs = stations.filter(s=>s.requests?.length);
-  const total = andons.length + holds.length + reqs.reduce((n,s)=>n+s.requests.length,0);
-  const badge = document.getElementById('feed-badge'); badge.textContent = total;
-  let html = '';
-  if (andons.length) { html += '<div class="feed-section-title">Andon</div>'; html += andons.map(s=>`<div class="feed-item ${s.andon==='floor-manager'?'andon-m':'andon-l'}"><div class="feed-item-top"><span class="feed-station ${s.andon==='floor-manager'?'andon-m':'andon-l'}">${s.name}</span><span class="feed-time">${s.andonTime||''}</span></div><div class="feed-msg">${s.andon==='floor-manager'?'Floor Manager needed':'Line Lead needed'}</div></div>`).join(''); }
-  if (holds.length)  { html += '<div class="feed-section-title">On Hold</div>';  html += holds.map(s=>`<div class="feed-item hold"><div class="feed-item-top"><span class="feed-station hold">${s.name}</span></div><div class="feed-msg">${esc(s.holdReason||'On Hold')}</div></div>`).join(''); }
-  if (reqs.length)   { html += '<div class="feed-section-title">Inventory</div>'; reqs.forEach(s=>s.requests.forEach(r=>{ html += `<div class="feed-item inv"><div class="feed-item-top"><span class="feed-station inv">${s.name}</span><span class="feed-time">${r.time}</span></div><div class="feed-msg">${esc(r.text)}</div><button class="feed-dismiss" onclick="dismissReq(${s.id},${r.id})">Dismiss</button></div>`; })); }
-  document.getElementById('feed-list').innerHTML = html || '<div class="feed-empty">— Clear —</div>';
-}
-
-function tick() {
-  if (!state?.running) return;
-  const el = document.getElementById('timer');
-  if (state.paused) {
-    const pausedSoFar = state.totalPausedMs + (state.pauseStart ? Date.now()-state.pauseStart : 0);
-    const remaining = taktSec - (Date.now()-state.startTime-pausedSoFar)/1000;
-    el.textContent = remaining<=0 ? '-'+fmt(Math.abs(remaining)) : fmt(Math.ceil(remaining));
-    el.className = 'takt-time paused'; updateBannerTimer(); return;
-  }
-  const remaining = taktSec - (Date.now()-state.startTime-state.totalPausedMs)/1000;
-  el.textContent = remaining<=0 ? '-'+fmt(Math.abs(Math.round(remaining))) : fmt(Math.ceil(remaining));
-  el.className = 'takt-time' + (remaining<=0?' over':remaining<taktSec*0.1?' warning':'');
-}
-
-function updateBannerTimer() {
-  const el = document.getElementById('banner-timer');
-  if (!state?.paused||state.pauseLabel==='Paused'){el.textContent='';return;}
-  const ENDS = {'Morning Break':[10,45],'Lunch':[13,30],'Afternoon Break':[15,15]};
-  const ends = ENDS[state.pauseLabel]; if (!ends){el.textContent='';return;}
-  const now = new Date(new Date().toLocaleString('en-US',{timeZone:'America/Chicago'}));
-  const end = new Date(now); end.setHours(ends[0],ends[1],0,0);
-  const left = Math.max(0,Math.round((end-now)/1000));
-  el.textContent = left>0 ? fmt(left) : '';
-}
-
-function fmt(s){s=Math.round(Math.abs(s));const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return h+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');}
-function fmtSec(s){if(!s&&s!==0)return'';const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return(h?h+'h ':'')+( m?m+'m ':'')+sec+'s';}
-function fmtMs(ms){return fmtSec(Math.floor((ms||0)/1000));}
-function esc(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+// Tick elapsed times every second without a full re-render
+setInterval(function() {
+  document.querySelectorAll('.req-elapsed[data-submitted]').forEach(function(el) {
+    var t = parseInt(el.getAttribute('data-submitted'), 10);
+    if (t) el.textContent = ' · ' + fmtElapsed(t);
+  });
+}, 1000);
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
 </body>
 </html>
