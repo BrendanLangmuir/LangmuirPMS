@@ -222,6 +222,7 @@
 <script>
 let state = null, taktSec = 10800, timerInt = null;
 let holdReasons = ['No operator assigned','No frame/material at station','Secured (end of day)','Waiting for previous station'];
+let activeRequests = [];   // Line-level + station-level active requests for Live Alerts
 let lastPong = Date.now();
 
 const ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host);
@@ -237,9 +238,14 @@ setInterval(async () => {
   try { const d = await (await fetch('/api/state')).json(); state = d.state; taktSec = d.taktSeconds; if (d.holdReasons) holdReasons = d.holdReasons; render(); } catch {}
 }, 2000);
 
+setInterval(async () => {
+  try { const d = await (await fetch('/api/requests')).json(); activeRequests = d.requests || []; render(); } catch {}
+}, 3000);
+
 function applyMsg(msg) {
   if (msg.type === 'start') { state = { running: true, startTime: msg.startTime, cycleCount: msg.cycleCount, lineCycleCount: msg.cycleCount, stations: msg.stations, paused: false, pauseLabel: null, pauseStart: null, totalPausedMs: 0 }; taktSec = msg.taktSeconds; if (msg.holdReasons) holdReasons = msg.holdReasons; }
   if (msg.type === 'state') { state = msg.state; taktSec = msg.taktSeconds; if (msg.holdReasons) holdReasons = msg.holdReasons; }
+  if (msg.type === 'requests') { activeRequests = msg.requests || []; }
   render();
 }
 
@@ -382,11 +388,18 @@ function renderMgmt(id, stations) {
 }
 
 // ── Live Alerts feed (Board tab right panel) ──────────────────
+// Pulls from:
+//   - state.stations[].andon  → andon items (station-scoped)
+//   - state.stations[].stationStatus==='hold'  → hold items (station-scoped)
+//   - activeRequests (global) → inventory items (both line- and station-scoped)
 function renderFeed(stations) {
-  const andons = stations.filter(s => s.andon);
-  const holds  = stations.filter(s => s.stationStatus==='hold' && !s.done && state.running);
-  const reqs   = stations.filter(s => s.requests?.length);
-  const total  = andons.length + holds.length + reqs.reduce((n,s) => n + s.requests.length, 0);
+  const andons  = stations.filter(s => s.andon);
+  const holds   = stations.filter(s => s.stationStatus==='hold' && !s.done && state.running);
+  // Include ALL Apollo-line inventory requests (station-scoped and line-scoped).
+  // Fall back to station-scoped if global list isn't populated yet.
+  const apolloReqs = (activeRequests || [])
+    .filter(r => !r.fulfilled && (r.line === 'Apollo' || !r.line));
+  const total  = andons.length + holds.length + apolloReqs.length;
   document.getElementById('feed-badge').textContent = total;
   let html = '';
   if (andons.length) {
@@ -397,11 +410,14 @@ function renderFeed(stations) {
     html += '<div class="feed-section-title">On Hold</div>';
     html += holds.map(s => `<div class="feed-item hold"><div class="feed-item-top"><span class="feed-station hold">${esc(s.name)}</span></div><div class="feed-msg">${esc(s.holdReason||'On Hold')}</div></div>`).join('');
   }
-  if (reqs.length) {
+  if (apolloReqs.length) {
     html += '<div class="feed-section-title">Inventory</div>';
-    reqs.forEach(s => s.requests.forEach(r => {
-      html += `<div class="feed-item inv"><div class="feed-item-top"><span class="feed-station inv">${esc(s.name)}</span><span class="feed-time">${esc(r.time||'')}</span></div><div class="feed-msg">${esc(r.text)}</div></div>`;
-    }));
+    apolloReqs.forEach(r => {
+      const origin = r.station ? esc(r.station) : 'Line';
+      const bodyText = r.text || ((r.partNum || '') + (r.partName ? ' — ' + r.partName : ''));
+      const qtyLabel = r.qty ? (' ('+r.qty+' '+(r.unit||'')+')') : '';
+      html += `<div class="feed-item inv"><div class="feed-item-top"><span class="feed-station inv">${origin}</span><span class="feed-time">${esc(r.time||'')}</span></div><div class="feed-msg">${esc(bodyText)}${esc(qtyLabel)}</div></div>`;
+    });
   }
   document.getElementById('feed-list').innerHTML = html || '<div class="feed-empty">— Clear —</div>';
 }
