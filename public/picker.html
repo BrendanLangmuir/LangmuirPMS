@@ -391,7 +391,7 @@ function pollEpicor() {
     }
   }).catch(function(){});
 }
-setInterval(pollEpicor, 60000);
+setInterval(pollEpicor, 5 * 60 * 1000);
 
 // Returns formatted string for display in the "Factory on-hand" line.
 function epicorLabel(partNum) {
