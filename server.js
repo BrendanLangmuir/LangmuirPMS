@@ -547,9 +547,10 @@ async function fetchInventory() {
 fetchInventory();
 setInterval(fetchInventory, 10 * 60 * 1000);
 
-// Epicor on-hand refreshes every minute (separate lightweight endpoint).
-// Apps Script's doGet?epicorOnly=1 just reads BAQ_Data, skipping the heavier
-// Locations/BOM/Bundles work. Keeps execution-time cost minimal.
+// Epicor on-hand refreshes every 5 minutes (separate lightweight endpoint).
+// BAQ_Data on the Apps Script side refreshes hourly, so polling more
+// aggressively just costs Apps Script execution time without giving fresher
+// data. 5 min keeps display lag bounded without burning quota.
 async function fetchEpicorOnly() {
   if (!LOCATIONS_URL) return;
   // Apps Script web apps don't easily route by query param without server code,
@@ -572,7 +573,7 @@ async function fetchEpicorOnly() {
     }
   }
 }
-setInterval(fetchEpicorOnly, 60 * 1000);
+setInterval(fetchEpicorOnly, 5 * 60 * 1000);
 
 // ── Bundle lookup ────────────────────────────────────────────
 // Find a bundle by name (case-insensitive). Returns definition or null.
