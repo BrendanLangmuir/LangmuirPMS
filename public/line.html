@@ -379,7 +379,7 @@ function pollEpicor() {
     }
   }).catch(function(){});
 }
-setInterval(pollEpicor, 60000);
+setInterval(pollEpicor, 5 * 60 * 1000);
 
 // Returns {qty: number|null, label: 'XX'|'—'} for a given part.
 function epicorLookup(partNum) {
