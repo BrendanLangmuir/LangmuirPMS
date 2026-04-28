@@ -336,7 +336,7 @@ async function pollEpicor() {
     }
   } catch {}
 }
-setInterval(pollEpicor, 60000);
+setInterval(pollEpicor, 5 * 60 * 1000);
 
 // ── Epicor lookup helper ─────────────────────────────────────
 // Returns: { qty: number|null, label: 'XX' or '—' }
